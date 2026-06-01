@@ -1,0 +1,635 @@
+{
+  "nav": {
+    "dashboard": "Panou de Control",
+    "calendar": "Calendar",
+    "sites": "Șantiere",
+    "workers": "Muncitori",
+    "tasks": "Sarcini",
+    "timesheets": "Pontaje",
+    "quotes": "Devize",
+    "offers": "Oferte",
+    "orders": "Comenzi",
+    "contracts": "Contracte",
+    "invoices": "Facturi",
+    "purchases": "Achiziții",
+    "stocks": "Stocuri",
+    "equipment": "Echipamente",
+    "contacts": "Contacte",
+    "files": "Fișiere",
+    "settings": "Setări",
+    "more": "Mai mult",
+    "menu": "Meniu",
+    "sections": {
+      "general": "General",
+      "operations": "Operațiuni",
+      "financial": "Financiar",
+      "inventory": "Inventar",
+      "other": "Altele"
+    }
+  },
+  "common": {
+    "appName": "ElectricVision Track",
+    "appTagline": "Management Simplificat al Construcțiilor",
+    "nav": {
+      "dashboard": "Panou de Control",
+      "workers": "Muncitori",
+      "sites": "Șantiere",
+      "contacts": "Contacte",
+      "settings": "Setări",
+      "reports": "Rapoarte",
+      "timesheets": "Pontaje"
+    },
+    "buttons": {
+      "save": "Salvează",
+      "cancel": "Anulează",
+      "delete": "Șterge",
+      "edit": "Editează",
+      "add": "Adaugă",
+      "search": "Caută",
+      "filter": "Filtrează",
+      "close": "Închide",
+      "back": "Înapoi",
+      "next": "Următorul",
+      "previous": "Anteriorul",
+      "confirm": "Confirmă",
+      "submit": "Trimite",
+      "reset": "Resetează",
+      "export": "Exportă",
+      "import": "Importă",
+      "viewAll": "Vezi tot",
+      "loadMore": "Încarcă mai mult",
+      "retry": "Reîncearcă",
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "loading": "Se încarcă...",
+    "noResults": "Nu s-au găsit rezultate",
+    "noData": "Nu există date disponibile",
+    "required": "Obligatoriu",
+    "optional": "Opțional",
+    "all": "Toate",
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "total": "Total",
+    "actions": "Acțiuni",
+    "details": "Detalii",
+    "description": "Descriere",
+    "name": "Nume",
+    "status": "Status",
+    "date": "Dată",
+    "notes": "Notițe",
+    "phone": "Telefon",
+    "email": "Email",
+    "address": "Adresă"
+  },
+  "auth": {
+    "login": "Autentificare",
+    "logout": "Deconectare",
+    "signInWithGoogle": "Autentifică-te cu Google",
+    "email": "Email",
+    "password": "Parolă",
+    "confirmPassword": "Confirmă Parola",
+    "forgotPassword": "Ai uitat parola?",
+    "resetPassword": "Resetează Parola",
+    "createAccount": "Creează Cont",
+    "alreadyHaveAccount": "Ai deja un cont?",
+    "dontHaveAccount": "Nu ai un cont?",
+    "signUp": "Înregistrare",
+    "welcomeBack": "Bine ai revenit",
+    "signInToContinue": "Autentifică-te pentru a continua în ElectricVision Track",
+    "resetPasswordInstructions": "Introdu email-ul și îți vom trimite un link de resetare",
+    "passwordResetSent": "Email-ul de resetare a parolei a fost trimis. Verifică-ți inbox-ul.",
+    "invalidCredentials": "Email sau parolă invalidă",
+    "emailRequired": "Email-ul este obligatoriu",
+    "passwordRequired": "Parola este obligatorie",
+    "passwordTooShort": "Parola trebuie să aibă cel puțin 6 caractere",
+    "passwordsMustMatch": "Parolele trebuie să coincidă",
+    "accountCreated": "Contul a fost creat cu succes",
+    "demoMode": "Mod Demo",
+    "demoModeDescription": "Rulează în mod demo. Datele nu sunt salvate."
+  },
+  "dashboard": {
+    "title": "Panou de Control",
+    "welcome": "Bine ai venit, {name}",
+    "stats": {
+      "activeSites": "Șantiere Active",
+      "totalWorkers": "Total Muncitori",
+      "hoursThisWeek": "Ore Săptămâna Aceasta",
+      "monthlyRevenue": "Venituri Lunare"
+    },
+    "recentActivity": "Activitate Recentă",
+    "quickActions": "Acțiuni Rapide",
+    "addWorker": "Adaugă Muncitor",
+    "addSite": "Adaugă Șantier",
+    "addContact": "Adaugă Contact",
+    "viewTimesheets": "Vezi Pontaje",
+    "overview": "Prezentare Generală",
+    "noRecentActivity": "Nu există activitate recentă de afișat",
+    "activeSitesOverview": "Prezentare Generală Șantiere Active",
+    "newSite": "Șantier Nou",
+    "createQuote": "Creează Deviz",
+    "newPurchase": "Achiziție Nouă",
+    "viewReports": "Vezi Rapoarte",
+    "logTime": "Înregistrează Ore",
+    "newSiteDesc": "Adaugă un nou șantier",
+    "addWorkerDesc": "Înregistrează un nou membru al echipei",
+    "logTimeDesc": "Înregistrează orele de lucru",
+    "createQuoteDesc": "Pregătește un deviz nou",
+    "newPurchaseDesc": "Înregistrează achiziția de materiale",
+    "viewReportsDesc": "Analizează datele proiectului"
+  },
+  "workers": {
+    "title": "Muncitori",
+    "addWorker": "Adaugă Muncitor",
+    "editWorker": "Editează Muncitor",
+    "workerDetails": "Detalii Muncitor",
+    "deleteWorker": "Șterge Muncitor",
+    "searchWorkers": "Caută muncitori...",
+    "noWorkers": "Nu au fost adăugați muncitori încă",
+    "noWorkersDescription": "Adaugă primul tău muncitor pentru a începe",
+    "experienceLevels": {
+      "manager": "Manager",
+      "senior": "Senior",
+      "seniorWithDegree": "Senior cu studii",
+      "intermediate": "Intermediar",
+      "intermediateWithDegree": "Intermediar cu studii",
+      "junior": "Junior",
+      "juniorWithDegree": "Junior cu studii",
+      "associated": "Asociat"
+    },
+    "teamLeader": "Lider de echipă",
+    "teamLeaderBadge": "LE",
+    "fields": {
+      "firstName": "Prenume",
+      "lastName": "Nume de Familie",
+      "phone": "Telefon",
+      "email": "Email",
+      "hourlyRate": "Tarif Orar",
+      "hireDate": "Data Angajării",
+      "certifications": "Certificări",
+      "activeStatus": "Status Activ",
+      "experienceLevel": "Nivel de Experiență",
+      "isTeamLeader": "Lider de echipă",
+      "assignedSite": "Șantier Asignat",
+      "totalHours": "Ore Totale"
+    },
+    "confirmDelete": "Ești sigur că vrei să ștergi acest muncitor?",
+    "workerSaved": "Muncitorul a fost salvat cu succes",
+    "workerDeleted": "Muncitorul a fost șters cu succes",
+    "stats": {
+      "totalHoursMonth": "Ore Totale Luna Aceasta",
+      "assignedSites": "Șantiere Asignate",
+      "earnedThisMonth": "Câștiguri Luna Aceasta"
+    },
+    "detail": {
+      "assignedSites": "Șantiere Asignate",
+      "recentTimeLogs": "Pontaje Recente",
+      "site": "Șantier",
+      "role": "Rol",
+      "since": "Din",
+      "date": "Dată",
+      "hours": "Ore",
+      "description": "Descriere",
+      "profile": "Profil",
+      "contactInfo": "Informații de Contact",
+      "notFound": "Muncitor negăsit",
+      "notFoundDescription": "Muncitorul căutat nu există."
+    }
+  },
+  "sites": {
+    "title": "Șantiere",
+    "addSite": "Adaugă Șantier",
+    "editSite": "Editează Șantier",
+    "siteDetails": "Detalii Șantier",
+    "deleteSite": "Șterge Șantier",
+    "searchSites": "Caută șantiere...",
+    "noSites": "Nu au fost adăugate șantiere încă",
+    "noSitesDescription": "Adaugă primul tău șantier pentru a începe",
+    "statuses": {
+      "planned": "Planificat",
+      "in_progress": "În desfășurare",
+      "on_hold": "Suspendat",
+      "completed": "Finalizat"
+    },
+    "fields": {
+      "name": "Nume Șantier",
+      "address": "Adresă",
+      "client": "Client",
+      "description": "Descriere",
+      "startDate": "Data de Început",
+      "endDate": "Data de Sfârșit",
+      "budget": "Buget",
+      "status": "Status",
+      "assignedWorkers": "Muncitori Asignați",
+      "progress": "Progres"
+    },
+    "confirmDelete": "Ești sigur că vrei să ștergi acest șantier?",
+    "siteSaved": "Șantierul a fost salvat cu succes",
+    "siteDeleted": "Șantierul a fost șters cu succes",
+    "tabs": {
+      "overview": "Prezentare Generală",
+      "timeLogs": "Pontaje",
+      "materials": "Materiale",
+      "tools": "Scule/Echipamente",
+      "totalHours": "Total Ore",
+      "materialCosts": "Cost Materiale",
+      "laborCosts": "Cost Manoperă",
+      "addTimeLog": "Adaugă Pontaj",
+      "addMaterial": "Adaugă Material",
+      "addTool": "Adaugă Echipament"
+    }
+  },
+  "contacts": {
+    "title": "Contacte",
+    "addContact": "Adaugă Contact",
+    "editContact": "Editează Contact",
+    "contactDetails": "Detalii Contact",
+    "deleteContact": "Șterge Contact",
+    "searchContacts": "Caută contacte...",
+    "noContacts": "Nu au fost adăugate contacte încă",
+    "noContactsDescription": "Adaugă primul tău contact pentru a începe",
+    "types": {
+      "client": "Client",
+      "supplier": "Furnizor",
+      "employee": "Angajat",
+      "subcontractor": "Subcontractor"
+    },
+    "fields": {
+      "name": "Nume",
+      "firstName": "Prenume",
+      "lastName": "Nume de Familie",
+      "company": "Companie",
+      "phone": "Telefon",
+      "email": "Email",
+      "address": "Adresă",
+      "workTypes": "Tipuri de Lucrări",
+      "type": "Tip Contact",
+      "notes": "Notițe"
+    },
+    "confirmDelete": "Ești sigur că vrei să ștergi acest contact?",
+    "contactSaved": "Contactul a fost salvat cu succes",
+    "contactDeleted": "Contactul a fost șters cu succes"
+  },
+  "settings": {
+    "title": "Setări",
+    "language": "Limbă",
+    "profile": "Profil",
+    "preferences": "Preferințe",
+    "currency": "Monedă",
+    "theme": "Temă",
+    "notifications": "Notificări",
+    "account": "Cont",
+    "editProfile": "Editează Profilul",
+    "changePassword": "Schimbă Parola",
+    "deleteAccount": "Șterge Contul",
+    "displayName": "Nume Afișat",
+    "readOnly": "Doar citire",
+    "appInfo": "Informații Aplicație",
+    "version": "Versiune",
+    "visitWebsite": "Vizitează Site-ul",
+    "languages": {
+      "en": "English",
+      "ro": "Română"
+    },
+    "currencies": {
+      "RON": "RON - Leu Românesc",
+      "EUR": "EUR - Euro"
+    },
+    "saved": "Setările au fost salvate cu succes"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "manager": "Manager",
+    "worker": "Muncitor"
+  },
+  "statusMessages": {
+    "saved": "Salvat cu succes",
+    "deleted": "Șters cu succes",
+    "updated": "Actualizat cu succes",
+    "created": "Creat cu succes",
+    "error": "A apărut o eroare. Te rugăm să încerci din nou.",
+    "confirmDelete": "Ești sigur că vrei să ștergi acest element? Această acțiune nu poate fi anulată.",
+    "networkError": "Eroare de rețea. Verifică-ți conexiunea.",
+    "unauthorized": "Nu ai permisiunea de a efectua această acțiune.",
+    "notFound": "Elementul nu a fost găsit."
+  },
+  "time": {
+    "today": "Astăzi",
+    "yesterday": "Ieri",
+    "thisWeek": "Săptămâna Aceasta",
+    "lastWeek": "Săptămâna Trecută",
+    "thisMonth": "Luna Aceasta",
+    "lastMonth": "Luna Trecută",
+    "thisYear": "Anul Acesta",
+    "hours": "ore",
+    "minutes": "minute",
+    "days": "zile"
+  },
+  "currency": {
+    "RON": "RON",
+    "EUR": "EUR",
+    "symbolRON": "lei",
+    "symbolEUR": "€"
+  },
+  "validation": {
+    "required": "Acest câmp este obligatoriu",
+    "invalidEmail": "Te rugăm să introduci o adresă de email validă",
+    "invalidPhone": "Te rugăm să introduci un număr de telefon valid",
+    "minLength": "Trebuie să aibă cel puțin {min} caractere",
+    "maxLength": "Trebuie să aibă cel mult {max} caractere",
+    "positiveNumber": "Trebuie să fie un număr pozitiv"
+  },
+  "quotes": {
+    "title": "Devize",
+    "addQuote": "Creează Deviz",
+    "editQuote": "Editează Deviz",
+    "quoteDetails": "Detalii Deviz",
+    "deleteQuote": "Șterge Deviz",
+    "searchQuotes": "Caută devize...",
+    "noQuotes": "Nu au fost create devize încă",
+    "noQuotesDescription": "Creează primul tău deviz estimativ pentru a începe",
+    "fields": {
+      "quoteNumber": "Număr Deviz",
+      "site": "Șantier",
+      "client": "Nume Client",
+      "expiryDate": "Valabil Până La",
+      "status": "Status",
+      "materialsSubtotal": "Subtotal Materiale",
+      "laborSubtotal": "Subtotal Manoperă",
+      "subtotal": "Subtotal",
+      "targetMargin": "Marjă Țintă",
+      "marginAmount": "Valoare Marjă",
+      "totalAmount": "Total General"
+    },
+    "statuses": {
+      "draft": "Ciornă",
+      "sent": "Trimis",
+      "accepted": "Acceptat",
+      "rejected": "Respins",
+      "converted": "Convertit"
+    },
+    "buttons": {
+      "addMaterial": "Adaugă Material",
+      "addLabor": "Adaugă Linie Manoperă",
+      "convertToContract": "Convertește în Contract",
+      "printPreview": "Tipărește / PDF"
+    }
+  },
+  "offers": {
+    "title": "Oferte Furnizori",
+    "compareOffers": "Compară Oferte Furnizori",
+    "lowestPrice": "Cel Mai Mic Preț",
+    "marginErosion": "Alertă Eroziune Marjă",
+    "originalQuote": "Preț Deviz Original",
+    "selectSupplier": "Selectează Oferta Furnizorului",
+    "generateOrder": "Generează Comandă",
+    "costGap": "Diferență Cost Marjă",
+    "noOffers": "Nu există oferte furnizori adăugate pentru acest șantier încă"
+  },
+  "orders": {
+    "title": "Comenzi Șantier",
+    "addOrder": "Creează Comandă",
+    "fields": {
+      "orderNumber": "Număr Comandă",
+      "executionPhase": "Fază de Execuție",
+      "supplierCost": "Cost Furnizor",
+      "targetMargin": "Marjă Țintă",
+      "clientSaleValue": "Valoare Vânzare Client",
+      "status": "Status Comandă"
+    },
+    "statuses": {
+      "draft": "Ciornă",
+      "ordered": "Comandat",
+      "partial": "Livrat Parțial",
+      "delivered": "Livrat",
+      "completed": "Finalizat"
+    }
+  },
+  "invoices": {
+    "title": "Facturi",
+    "createInvoice": "Creează Factură",
+    "fields": {
+      "invoiceNumber": "Număr Factură",
+      "workStage": "Fază Facturare / Etapă",
+      "amount": "Valoare Factură",
+      "paidAmount": "Sumă Plătită",
+      "outstanding": "Sold De Plătit",
+      "dueDate": "Data Scadentă",
+      "status": "Status Plată",
+      "recordPayment": "Înregistrează Plată",
+      "arrearsDelay": "Întârziere Plată",
+      "overdue": "Restantă"
+    },
+    "statuses": {
+      "draft": "Ciornă",
+      "sent": "Trimisă",
+      "paid": "Plătită",
+      "partial": "Plătită Parțial",
+      "overdue": "Depășită"
+    }
+  },
+  "contracts": {
+    "title": "Contracte",
+    "addContract": "Creează Contract",
+    "editContract": "Editează Contract",
+    "contractDetails": "Detalii Contract",
+    "deleteContract": "Șterge Contract",
+    "searchContracts": "Caută contracte...",
+    "noContracts": "Nu au fost create contracte încă",
+    "noContractsDescription": "Creează sau importă primul tău contract pentru a începe",
+    "fields": {
+      "contractNumber": "Număr Contract",
+      "site": "Șantier",
+      "client": "Nume Client",
+      "totalAmount": "Valoare Contract",
+      "status": "Status",
+      "advancePayment": "Plată în Avans",
+      "penaltyClauses": "Clauze Penalități",
+      "guarantees": "Garanții & Post-garanție",
+      "signature": "Semnătură Digitală",
+      "signedAt": "Semnat La",
+      "ipLog": "IP Verificare",
+      "addenda": "Acte Adiționale"
+    },
+    "statuses": {
+      "draft": "Ciornă",
+      "pending_signature": "Așteaptă Semnătura",
+      "signed": "Semnat",
+      "active": "Activ",
+      "completed": "Finalizat",
+      "cancelled": "Anulat"
+    },
+    "buttons": {
+      "clear": "Șterge Desenul",
+      "sign": "Confirmă Semnătura",
+      "addAddendum": "Adaugă Act Adițional"
+    }
+  },
+  "files": {
+    "title": "Fișiere & Documente",
+    "uploadFile": "Încarcă Fișier",
+    "searchFiles": "Caută după etichete...",
+    "noFiles": "Nu există fișiere încărcate pentru acest șantier încă",
+    "noFilesDescription": "Încarcă schițe, certificate sau autorizații pentru a organiza fișierele proiectului",
+    "fields": {
+      "fileName": "Nume Fișier",
+      "uploadedAt": "Data Încărcării",
+      "size": "Dimensiune",
+      "tags": "Etichete",
+      "shared": "Status Partajare",
+      "category": "Categorie Document"
+    },
+    "categories": {
+      "plans": "Planuri & Schițe",
+      "permits": "Autorizații & Avize",
+      "certificates": "Certificate & Calitate",
+      "photos": "Poze Progres Șantier"
+    }
+  },
+  "purchases": {
+    "title": "Achiziții",
+    "scanReceipt": "Scanează Bon / Factură",
+    "receiptDetails": "Detalii Bon Fiscal",
+    "ocrStatus": "Status Extragere OCR",
+    "noPurchases": "Nicio achiziție înregistrată",
+    "noPurchasesDescription": "Scanează sau încarcă prima factură de la furnizor pentru a loga achizițiile din depozit",
+    "fields": {
+      "invoiceId": "ID Factură",
+      "supplier": "Nume Furnizor",
+      "date": "Data Achiziției",
+      "totalAmount": "Valoare Totală",
+      "site": "Șantier Alocat",
+      "status": "Status Verificare",
+      "extractedText": "Date Extrase OCR",
+      "ocrAccuracy": "Acuratețe OCR"
+    },
+    "statuses": {
+      "pending_verification": "În curs de verificare",
+      "verified": "Verificat & Salvat",
+      "failed": "Eroare Scanare"
+    },
+    "buttons": {
+      "scan": "Declanșează Scanner Cameră",
+      "capturing": "Scanare imagine...",
+      "ocrAnalysis": "Analiză OCR...",
+      "verifyAndLog": "Verifică & Salvează Achiziția"
+    }
+  },
+  "stocks": {
+    "title": "Stocuri Depozit",
+    "searchStocks": "Caută materiale în depozit...",
+    "noStocks": "Niciun stoc definit încă",
+    "fields": {
+      "materialName": "Nume Material",
+      "qtyInStock": "Cantitate în Stoc",
+      "safetyThreshold": "Prag de Siguranță",
+      "preferredSupplier": "Furnizor Preferențial",
+      "status": "Status Stoc",
+      "category": "Segment Depozit"
+    },
+    "statuses": {
+      "safe": "Stoc Suficient",
+      "low": "Alertă Stoc Scăzut"
+    },
+    "categories": {
+      "cabling": "Cabluri & Tuburi",
+      "protection": "Tablouri & Protecții",
+      "fixtures": "Aparataje & Doze",
+      "consolidated": "Consumabile Generale"
+    },
+    "buttons": {
+      "assignSupplier": "Setează Furnizor Preferat",
+      "compareSupplierBids": "Compară Oferte Furnizori",
+      "orderFromPreferred": "Comandă de la Furnizor Preferat"
+    }
+  },
+  "inventory": {
+    "title": "Echipamente & Utilaje",
+    "searchEquipment": "Caută utilaje & scule alocate...",
+    "noEquipment": "Nicio sculă înregistrată",
+    "fields": {
+      "toolName": "Nume Bun / Echipament",
+      "serialNumber": "Număr de Serie",
+      "purchaseDate": "Data Achiziției",
+      "cost": "Cost Inițial",
+      "usefulLife": "Durată Utilă de Viață",
+      "depreciation": "Amortizare la Zi",
+      "bookValue": "Valoare Contabilă Curentă",
+      "status": "Stare Funcționare",
+      "assignedTo": "Angajat Responsabil"
+    },
+    "statuses": {
+      "operational": "Funcțional",
+      "maintenance": "În Mentenanță",
+      "retired": "Casat"
+    },
+    "buttons": {
+      "addEvent": "Log Mentenanță",
+      "depreciationCalculator": "Calculator Amortizare"
+    },
+    "maintenance": {
+      "history": "Istoric Intervenții Mentenanță",
+      "description": "Descriere Reparație / Calibrare",
+      "cost": "Cost Mentenanță",
+      "date": "Data Efectuării",
+      "noLogs": "Nicio intervenție înregistrată pentru acest echipament"
+    }
+  },
+  "timesheets": {
+    "title": "Pontaje",
+    "logHours": "Înregistrează Ore de Lucru",
+    "weeklySummary": "Rezumat Săptămânal Pontaje & Calcul Costuri Forță de Muncă",
+    "noLogs": "Nu există pontaje înregistrate pentru această săptămână încă",
+    "fields": {
+      "worker": "Nume Angajat",
+      "site": "Șantier Alocat",
+      "date": "Data Pontajului",
+      "standardHours": "Ore Standard",
+      "overtimeHours": "Ore Suplimentare (1x)",
+      "weekendHours": "Ore Weekend (1.5x)",
+      "totalHours": "Total Ore",
+      "computedCost": "Cost Laborator",
+      "description": "Note Activitate / Lucrări Efectuate"
+    },
+    "buttons": {
+      "logTime": "Înregistrează Pontaj"
+    }
+  },
+  "tasks": {
+    "title": "Panou Kanban Sarcini",
+    "createTask": "Creează Sarcină Nouă",
+    "noTasks": "Nu există sarcini definite încă pentru acest proiect",
+    "columns": {
+      "todo": "De Făcut",
+      "in_progress": "În Lucru",
+      "quality_review": "Control Calitate",
+      "completed": "Finalizat"
+    },
+    "fields": {
+      "taskName": "Titlu Sarcină",
+      "description": "Descrierea Lucrărilor",
+      "site": "Șantier Alocat",
+      "assignedTo": "Electrician Desemnat",
+      "priority": "Nivel Prioritate",
+      "dueDate": "Termen Limită"
+    },
+    "priorities": {
+      "low": "Prioritate Scăzută",
+      "medium": "Prioritate Medie",
+      "high": "Prioritate Ridicată"
+    }
+  },
+  "calendar": {
+    "title": "Calendar Activități",
+    "filterEvents": "Filtrează Tipul de Activități",
+    "types": {
+      "milestone": "Termene Șantiere (🏗️)",
+      "allocation": "Alocări Personal (👷)",
+      "maintenance": "Revizii Scule (🔧)"
+    },
+    "views": {
+      "week": "Planificare Săptămânală",
+      "month": "Calendar Lunar"
+    }
+  }
+}

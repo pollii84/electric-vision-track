@@ -1,0 +1,16 @@
+'use client';
+import { I18nProvider } from '@/lib/i18n';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+
+export default function Providers({ children }) {
+  return (
+    <I18nProvider>
+      <AuthProvider>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </AuthProvider>
+    </I18nProvider>
+  );
+}
