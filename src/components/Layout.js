@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { useBusiness } from '@/contexts/BusinessContext';
 
 const NAV_SECTIONS = [
   {
@@ -47,6 +48,7 @@ const NAV_SECTIONS = [
       { key: 'contacts', href: '/contacts', icon: '👥' },
       { key: 'files', href: '/files', icon: '📁' },
       { key: 'settings', href: '/settings', icon: '⚙️' },
+      { key: 'companies', href: '/companies', icon: '🏢' },
     ],
   },
 ];
@@ -62,9 +64,10 @@ export default function Layout({ children }) {
   const pathname = usePathname();
   const { user, isDemo, logout } = useAuth();
   const { t } = useI18n();
+  const { companies, activeCompanyId, setActiveCompanyId } = useBusiness();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/marketing' || pathname === '/register') {
     return <>{children}</>;
   }
 
@@ -82,12 +85,46 @@ export default function Layout({ children }) {
     <div className="app-layout">
       {/* Desktop Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
           <img
             src="/images/logo_header.png"
             alt="ElectricVision"
-            style={{ height: 32, width: 'auto' }}
+            style={{ height: 49, width: 'auto' }}
           />
+          {/* Company Switcher Dropdown */}
+          <div style={{ width: '100%', padding: '0 8px' }}>
+            <select
+              value={activeCompanyId}
+              onChange={(e) => {
+                if (e.target.value === 'manage-companies') {
+                  window.location.href = '/companies';
+                } else {
+                  setActiveCompanyId(e.target.value);
+                }
+              }}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 12px',
+                color: 'var(--clr-text)',
+                fontSize: 'var(--fs-sm)',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {companies.map((c) => (
+                <option key={c.id} value={c.id} style={{ background: 'var(--clr-bg-deep)' }}>
+                  🏢 {c.name}
+                </option>
+              ))}
+              <option value="manage-companies" style={{ background: 'var(--clr-bg-deep)', color: 'var(--clr-primary)' }}>
+                ⚙️ {t('companies.title')}
+              </option>
+            </select>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -178,6 +215,45 @@ export default function Layout({ children }) {
               <button className="modal-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
             </div>
             <div className="modal-body" style={{ padding: '8px' }}>
+              {/* Mobile Company Switcher */}
+              <div style={{ padding: '8px', marginBottom: 16 }}>
+                <label style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                  {t('companies.switcher')}
+                </label>
+                <select
+                  value={activeCompanyId}
+                  onChange={(e) => {
+                    if (e.target.value === 'manage-companies') {
+                      setMobileMenuOpen(false);
+                      window.location.href = '/companies';
+                    } else {
+                      setActiveCompanyId(e.target.value);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '8px 12px',
+                    color: 'var(--clr-text)',
+                    fontSize: 'var(--fs-sm)',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id} style={{ background: 'var(--clr-bg-deep)' }}>
+                      🏢 {c.name}
+                    </option>
+                  ))}
+                  <option value="manage-companies" style={{ background: 'var(--clr-bg-deep)', color: 'var(--clr-primary)' }}>
+                    ⚙️ {t('companies.title')}
+                  </option>
+                </select>
+              </div>
+
               {NAV_SECTIONS.map((section) => (
                 <div key={section.key}>
                   <div className="sidebar-section-title">{t(`nav.sections.${section.key}`)}</div>

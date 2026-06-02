@@ -17,6 +17,7 @@
     "contacts": "Contacts",
     "files": "Files",
     "settings": "Settings",
+    "companies": "Business Units",
     "more": "More",
     "menu": "Menu",
     "sections": {
@@ -633,5 +634,170 @@
       "week": "Weekly Planner",
       "month": "Monthly Calendar"
     }
+  },
+  "marketing": {
+    "hero": {
+      "title": "ElectricVision Track",
+      "subtitle": "The All-in-One Construction Management Platform",
+      "description": "Streamline your electrical contracting operations — from quotes and contracts to workforce scheduling, inventory control, and real-time job tracking. Built for teams that move fast.",
+      "cta": "Get Started Free",
+      "watchDemo": "Watch Demo"
+    },
+    "nav": {
+      "features": "Features",
+      "savings": "Savings",
+      "pricing": "Pricing",
+      "login": "Log In",
+      "register": "Register"
+    },
+    "features": {
+      "title": "Everything You Need to Run Your Business",
+      "subtitle": "Powerful tools designed specifically for electrical contractors and construction companies",
+      "quoting": {
+        "title": "Quotes & Invoicing",
+        "description": "Create professional quotes with dynamic line items, markup margins, and convert them to contracts with a single click."
+      },
+      "workforce": {
+        "title": "Workforce Management",
+        "description": "Manage workers, track timesheets with overtime/weekend rates, assign teams to sites, and monitor labor costs in real time."
+      },
+      "inventory": {
+        "title": "Inventory & Procurement",
+        "description": "Track warehouse stocks, set safety thresholds, compare supplier bids, manage equipment depreciation — all in one place."
+      },
+      "scheduling": {
+        "title": "Task Scheduling",
+        "description": "Kanban boards, operations calendars with week/month views, and drag-and-drop task assignments keep your projects on track."
+      },
+      "contracts": {
+        "title": "Digital Contracts",
+        "description": "Generate contracts from quotes, capture digital signatures on canvas, manage addenda, and track payment milestones."
+      },
+      "reporting": {
+        "title": "Documents & Files",
+        "description": "Upload blueprints, permits, certificates, and progress photos. Organize everything by site with smart tagging."
+      }
+    },
+    "savings": {
+      "title": "See How Much You Can Save",
+      "subtitle": "Enter your company details to estimate your annual savings with ElectricVision Track",
+      "workersLabel": "Number of Workers",
+      "avgHourlyRate": "Avg. Hourly Rate ($)",
+      "monthlyHours": "Monthly Hours per Worker",
+      "withoutEVT": "Without EV Track (Annual)",
+      "withEVT": "With EV Track (Annual)",
+      "annualSavings": "Estimated Annual Savings",
+      "timeSaved": "Hours Saved per Year",
+      "adminOverhead": "Admin & Overhead Costs",
+      "materialWaste": "Material Waste & Over-ordering",
+      "schedulingLoss": "Scheduling & Downtime Losses",
+      "invoiceDelays": "Invoice & Payment Delays",
+      "complianceFines": "Compliance & Documentation Fines",
+      "totalLosses": "Total Potential Annual Losses",
+      "efficiencyGain": "Efficiency Gain"
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "subtitle": "Choose the plan that fits your business. All plans include every feature.",
+      "perMonth": "/month",
+      "perUser": "/user",
+      "getStarted": "Get Started",
+      "contactSales": "Contact Sales",
+      "popular": "Most Popular",
+      "allFeatures": "All Features Included",
+      "packages": {
+        "small": {
+          "name": "Small",
+          "users": "1 – 10 users",
+          "description": "Perfect for small crews and solo contractors",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "medium": {
+          "name": "Medium",
+          "users": "11 – 50 users",
+          "description": "Ideal for growing companies with multiple sites",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "large": {
+          "name": "Large",
+          "users": "50 – 500 users",
+          "description": "For established firms managing complex projects",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "users": "500+ users",
+          "description": "Custom solutions for large-scale operations",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        }
+      },
+      "roleLabels": {
+        "owner": "Owner",
+        "manager": "Manager",
+        "supervisor": "Site Supervisor",
+        "worker": "Worker"
+      }
+    },
+    "footer": {
+      "copyright": "© 2026 ElectricVision Track. All rights reserved.",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "contact": "Contact Us"
+    }
+  },
+  "register": {
+    "title": "Create Your Business Account",
+    "subtitle": "Set up your company workspace in under 2 minutes",
+    "fields": {
+      "companyName": "Company Name",
+      "ownerName": "Business Owner Full Name",
+      "email": "Business Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "package": "Select Your Plan"
+    },
+    "signUpWithGoogle": "Sign up with Google",
+    "createAccount": "Create Business Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "login": "Log In",
+    "packageSelected": "Selected Plan",
+    "termsAgreement": "By creating an account, you agree to our Terms of Service and Privacy Policy.",
+    "success": "Your business account has been created successfully! Redirecting to your dashboard...",
+    "companyNameRequired": "Company name is required",
+    "ownerNameRequired": "Owner name is required"
+  },
+  "companies": {
+    "title": "Business Units",
+    "subtitle": "Manage company branches and divisions",
+    "addCompany": "Add Business Unit",
+    "editCompany": "Edit Business Unit",
+    "deleteCompany": "Delete Business Unit",
+    "selectCompany": "Switch Context",
+    "active": "Active Workspace",
+    "form": {
+      "name": "Business Unit Name",
+      "address": "Location Address",
+      "description": "Short Description",
+      "manager": "Branch Manager"
+    },
+    "stats": {
+      "sites": "Active Sites",
+      "workers": "Workers",
+      "managers": "Managers"
+    },
+    "switcher": "Active Company",
+    "confirmDelete": "Are you sure you want to delete this business unit? All scoped data will be removed."
   }
 }

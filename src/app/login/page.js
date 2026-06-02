@@ -182,8 +182,8 @@ export default function LoginPage() {
             <img
               src="/images/logo_header.png"
               alt="ElectricVision"
-              width={80}
-              height={80}
+              width={125}
+              height={125}
               style={{ objectFit: 'contain' }}
             />
           </div>

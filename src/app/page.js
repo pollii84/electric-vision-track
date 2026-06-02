@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusiness } from '@/contexts/BusinessContext';
 
 const STAT_CARDS = [
   {
@@ -155,6 +156,7 @@ const RECENT_ACTIVITIES = [
 export default function DashboardPage() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { activeCompany, activeCompanyId } = useBusiness();
 
   const todayFormatted = useMemo(() => {
     return new Date().toLocaleDateString(undefined, {
@@ -165,12 +167,98 @@ export default function DashboardPage() {
     });
   }, []);
 
+  const stats = useMemo(() => {
+    if (activeCompanyId === 'company-cluj') {
+      return [
+        { icon: '🏗️', value: '12', labelKey: 'dashboard.stats.activeSites', change: '+2 this month', theme: 'primary' },
+        { icon: '👷', value: '48', labelKey: 'dashboard.stats.totalWorkers', change: '+5', theme: 'accent' },
+        { icon: '⏱️', value: '1,240', labelKey: 'dashboard.stats.hoursThisWeek', change: '+8%', theme: 'success' },
+        { icon: '💰', value: '248,500 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '+12%', theme: 'primary' },
+      ];
+    } else if (activeCompanyId === 'company-bucharest') {
+      return [
+        { icon: '🏗️', value: '2', labelKey: 'dashboard.stats.activeSites', change: '+1 this month', theme: 'primary' },
+        { icon: '👷', value: '4', labelKey: 'dashboard.stats.totalWorkers', change: '+2', theme: 'accent' },
+        { icon: '⏱️', value: '320', labelKey: 'dashboard.stats.hoursThisWeek', change: '+15%', theme: 'success' },
+        { icon: '💰', value: '78,200 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '+20%', theme: 'primary' },
+      ];
+    } else if (activeCompanyId === 'company-oradea') {
+      return [
+        { icon: '🏗️', value: '1', labelKey: 'dashboard.stats.activeSites', change: '0 this month', theme: 'primary' },
+        { icon: '👷', value: '3', labelKey: 'dashboard.stats.totalWorkers', change: '0', theme: 'accent' },
+        { icon: '⏱️', value: '180', labelKey: 'dashboard.stats.hoursThisWeek', change: '+5%', theme: 'success' },
+        { icon: '💰', value: '45,000 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '+10%', theme: 'primary' },
+      ];
+    } else {
+      return [
+        { icon: '🏗️', value: String(activeCompany?.stats?.sites || 0), labelKey: 'dashboard.stats.activeSites', change: '0', theme: 'primary' },
+        { icon: '👷', value: String(activeCompany?.stats?.workers || 0), labelKey: 'dashboard.stats.totalWorkers', change: '0', theme: 'accent' },
+        { icon: '⏱️', value: '0', labelKey: 'dashboard.stats.hoursThisWeek', change: '0', theme: 'success' },
+        { icon: '💰', value: '0 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '0', theme: 'primary' },
+      ];
+    }
+  }, [activeCompanyId, activeCompany]);
+
+  const sitesList = useMemo(() => {
+    if (activeCompanyId === 'company-cluj') {
+      return [
+        { name: 'Vila Popescu - Cluj', client: 'Popescu Ion', status: 'in_progress', badgeClass: 'badge-warning', progress: 65, workers: 4 },
+        { name: 'Bloc Florești Et.3', client: 'SC Residential SRL', status: 'in_progress', badgeClass: 'badge-warning', progress: 40, workers: 6 },
+        { name: 'Birouri Sigma Center', client: 'Sigma Development', status: 'planned', badgeClass: 'badge-primary', progress: 0, workers: 0 },
+        { name: 'Casa Marin - Borșa', client: 'Marin Alexandru', status: 'completed', badgeClass: 'badge-success', progress: 100, workers: 0 },
+        { name: 'Hotel Panoramic', client: 'SC Turism SA', status: 'in_progress', badgeClass: 'badge-warning', progress: 25, workers: 8 },
+      ];
+    } else if (activeCompanyId === 'company-bucharest') {
+      return [
+        { name: 'Bucharest Mall Electrical Room', client: 'SC Mall Developers', status: 'in_progress', badgeClass: 'badge-warning', progress: 15, workers: 3 },
+        { name: 'Romania Palace Illumination', client: 'Palace Admin', status: 'in_progress', badgeClass: 'badge-warning', progress: 50, workers: 1 },
+      ];
+    } else if (activeCompanyId === 'company-oradea') {
+      return [
+        { name: 'Oradea Logistics Center Cabling', client: 'SC Logistics SA', status: 'in_progress', badgeClass: 'badge-warning', progress: 10, workers: 3 },
+      ];
+    } else {
+      return [];
+    }
+  }, [activeCompanyId]);
+
+  const activities = useMemo(() => {
+    if (activeCompanyId === 'company-cluj') {
+      return [
+        { color: 'var(--clr-success)', text: 'Andrei Popescu logged 8h at Vila Popescu', time: '2h ago' },
+        { color: 'var(--clr-warning)', text: 'New material purchase: 500m cable NYM 3x2.5', time: '3h ago' },
+        { color: 'var(--clr-accent)', text: 'Task completed: Panel installation at Bloc Florești', time: '5h ago' },
+        { color: 'var(--clr-success)', text: 'Invoice #INV-2026-0042 sent to Sigma Development', time: 'Yesterday' },
+        { color: 'var(--clr-warning)', text: 'Maria Ionescu assigned to Hotel Panoramic', time: 'Yesterday' },
+        { color: 'var(--clr-danger)', text: 'Site Depozit Turda status changed to On Hold', time: '2 days ago' },
+      ];
+    } else if (activeCompanyId === 'company-bucharest') {
+      return [
+        { color: 'var(--clr-success)', text: 'Ion Munteanu logged 6h at Bucharest Mall', time: '4h ago' },
+        { color: 'var(--clr-warning)', text: 'Assigned 2 senior technicians to Romania Palace', time: 'Yesterday' },
+      ];
+    } else if (activeCompanyId === 'company-oradea') {
+      return [
+        { color: 'var(--clr-success)', text: 'Elena Dragomir logged 8h at Logistics Center', time: '1h ago' },
+      ];
+    } else {
+      return [
+        { color: 'var(--clr-info)', text: `Welcome to ${activeCompany?.name || 'new workspace'}!`, time: 'Just now' }
+      ];
+    }
+  }, [activeCompanyId, activeCompany]);
+
   return (
     <Layout>
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1>{t('dashboard.welcome', { name: user?.displayName || 'User' })}</h1>
+          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            {t('dashboard.welcome', { name: user?.displayName || 'User' })}{' '}
+            <span style={{ fontSize: 'var(--fs-md)', color: 'var(--clr-primary)', fontWeight: 600 }}>
+              ({activeCompany?.name})
+            </span>
+          </h1>
           <p className="text-muted" style={{ marginTop: 4 }}>
             {todayFormatted}
           </p>
@@ -179,7 +267,7 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="content-grid grid-cols-4" style={{ marginBottom: 'var(--sp-lg)' }}>
-        {STAT_CARDS.map((stat) => (
+        {stats.map((stat) => (
           <div key={stat.labelKey} className={`glass-card stat-card ${stat.theme}`}>
             <div className="stat-icon" aria-hidden="true">
               {stat.icon}
@@ -224,7 +312,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {DEMO_SITES.map((site) => (
+                {sitesList.map((site) => (
                   <tr key={site.name}>
                     <td>
                       <span style={{ fontWeight: 600 }}>{site.name}</span>
@@ -275,6 +363,13 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ))}
+                {sitesList.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--clr-text-muted)', padding: '24px 0' }}>
+                      No active sites in this business unit
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -348,7 +443,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {RECENT_ACTIVITIES.map((activity, index) => (
+          {activities.map((activity, index) => (
             <div
               key={index}
               style={{
@@ -357,7 +452,7 @@ export default function DashboardPage() {
                 gap: 'var(--sp-md)',
                 padding: '12px 0',
                 borderBottom:
-                  index < RECENT_ACTIVITIES.length - 1
+                  index < activities.length - 1
                     ? '1px solid var(--clr-border)'
                     : 'none',
               }}

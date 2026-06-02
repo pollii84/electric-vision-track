@@ -17,6 +17,7 @@
     "contacts": "Contacte",
     "files": "Fișiere",
     "settings": "Setări",
+    "companies": "Unități Afacere",
     "more": "Mai mult",
     "menu": "Meniu",
     "sections": {
@@ -631,5 +632,170 @@
       "week": "Planificare Săptămânală",
       "month": "Calendar Lunar"
     }
+  },
+  "marketing": {
+    "hero": {
+      "title": "ElectricVision Track",
+      "subtitle": "Platforma Completă de Management al Construcțiilor",
+      "description": "Optimizează operațiunile companiei tale de instalații electrice — de la devize și contracte la programarea echipelor, controlul stocurilor și urmărirea în timp real a lucrărilor. Construit pentru echipe care se mișcă rapid.",
+      "cta": "Începe Gratuit",
+      "watchDemo": "Vezi Demo"
+    },
+    "nav": {
+      "features": "Funcționalități",
+      "savings": "Economii",
+      "pricing": "Prețuri",
+      "login": "Autentificare",
+      "register": "Înregistrare"
+    },
+    "features": {
+      "title": "Tot Ce Ai Nevoie Pentru a-ți Conduce Afacerea",
+      "subtitle": "Instrumente puternice concepute special pentru antreprenorii de instalații electrice și companiile de construcții",
+      "quoting": {
+        "title": "Devize și Facturare",
+        "description": "Creează devize profesionale cu linii dinamice de articole, marje de profit și convertește-le în contracte cu un singur click."
+      },
+      "workforce": {
+        "title": "Management Forță de Muncă",
+        "description": "Gestionează muncitorii, urmărește pontajele cu ore suplimentare/weekend, alocă echipe la șantiere și monitorizează costurile de manoperă în timp real."
+      },
+      "inventory": {
+        "title": "Inventar și Achiziții",
+        "description": "Urmărește stocurile din depozit, setează praguri de siguranță, compară ofertele furnizorilor, gestionează amortizarea echipamentelor — totul într-un singur loc."
+      },
+      "scheduling": {
+        "title": "Planificare Sarcini",
+        "description": "Panouri Kanban, calendare operaționale cu vizualizări săptămânale/lunare și alocări de sarcini prin tragere care mențin proiectele pe drumul cel bun."
+      },
+      "contracts": {
+        "title": "Contracte Digitale",
+        "description": "Generează contracte din devize, captează semnături digitale pe canvas, gestionează acte adiționale și urmărește etapele de plată."
+      },
+      "reporting": {
+        "title": "Documente și Fișiere",
+        "description": "Încarcă schițe, autorizații, certificate și poze de progres. Organizează totul pe șantier cu etichetare inteligentă."
+      }
+    },
+    "savings": {
+      "title": "Vezi Cât Poți Economisi",
+      "subtitle": "Introdu detaliile companiei tale pentru a estima economiile anuale cu ElectricVision Track",
+      "workersLabel": "Număr de Muncitori",
+      "avgHourlyRate": "Tarif Mediu Orar ($)",
+      "monthlyHours": "Ore Lunare per Muncitor",
+      "withoutEVT": "Fără EV Track (Anual)",
+      "withEVT": "Cu EV Track (Anual)",
+      "annualSavings": "Economii Anuale Estimate",
+      "timeSaved": "Ore Economsite pe An",
+      "adminOverhead": "Costuri Administrative și Generale",
+      "materialWaste": "Risipă de Materiale și Supracomandare",
+      "schedulingLoss": "Pierderi din Programare și Inactivitate",
+      "invoiceDelays": "Întârzieri Facturare și Plăți",
+      "complianceFines": "Amenzi Conformitate și Documentație",
+      "totalLosses": "Total Pierderi Potențiale Anuale",
+      "efficiencyGain": "Câștig de Eficiență"
+    },
+    "pricing": {
+      "title": "Prețuri Simple și Transparente",
+      "subtitle": "Alege planul potrivit afacerii tale. Toate planurile includ toate funcționalitățile.",
+      "perMonth": "/lună",
+      "perUser": "/utilizator",
+      "getStarted": "Începe Acum",
+      "contactSales": "Contactează Vânzări",
+      "popular": "Cel Mai Popular",
+      "allFeatures": "Toate Funcționalitățile Incluse",
+      "packages": {
+        "small": {
+          "name": "Mic",
+          "users": "1 – 10 utilizatori",
+          "description": "Perfect pentru echipe mici și antreprenori individuali",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "medium": {
+          "name": "Mediu",
+          "users": "11 – 50 utilizatori",
+          "description": "Ideal pentru companiile în creștere cu mai multe șantiere",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "large": {
+          "name": "Mare",
+          "users": "50 – 500 utilizatori",
+          "description": "Pentru firmele consacrate ce gestionează proiecte complexe",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "users": "500+ utilizatori",
+          "description": "Soluții personalizate pentru operațiuni la scară largă",
+          "priceOwner": "$25.00",
+          "priceManager": "$15.00",
+          "priceSupervisor": "$5.00",
+          "priceWorker": "$2.00"
+        }
+      },
+      "roleLabels": {
+        "owner": "Proprietar",
+        "manager": "Manager",
+        "supervisor": "Șef de Șantier",
+        "worker": "Muncitor"
+      }
+    },
+    "footer": {
+      "copyright": "© 2026 ElectricVision Track. Toate drepturile rezervate.",
+      "privacy": "Politica de Confidențialitate",
+      "terms": "Termeni și Condiții",
+      "contact": "Contactează-ne"
+    }
+  },
+  "register": {
+    "title": "Creează Contul Tău de Afaceri",
+    "subtitle": "Configurează spațiul de lucru al companiei tale în mai puțin de 2 minute",
+    "fields": {
+      "companyName": "Numele Companiei",
+      "ownerName": "Numele Complet al Proprietarului",
+      "email": "Email de Afaceri",
+      "password": "Parolă",
+      "confirmPassword": "Confirmă Parola",
+      "package": "Selectează Planul Tău"
+    },
+    "signUpWithGoogle": "Înregistrare cu Google",
+    "createAccount": "Creează Cont de Afaceri",
+    "alreadyHaveAccount": "Ai deja un cont?",
+    "login": "Autentificare",
+    "packageSelected": "Plan Selectat",
+    "termsAgreement": "Prin crearea contului, accepți Termenii și Condițiile și Politica de Confidențialitate.",
+    "success": "Contul tău de afaceri a fost creat cu succes! Redirecționare către panoul de control...",
+    "companyNameRequired": "Numele companiei este obligatoriu",
+    "ownerNameRequired": "Numele proprietarului este obligatoriu"
+  },
+  "companies": {
+    "title": "Subdiviziuni Companie",
+    "subtitle": "Gestionează sucursalele, punctele de lucru și diviziile companiei",
+    "addCompany": "Adaugă Punct de Lucru",
+    "editCompany": "Editează Punct de Lucru",
+    "deleteCompany": "Șterge Punct de Lucru",
+    "selectCompany": "Schimbă Contextul",
+    "active": "Spațiu de Lucru Activ",
+    "form": {
+      "name": "Nume Punct de Lucru",
+      "address": "Adresă / Locație",
+      "description": "Scurtă Descriere",
+      "manager": "Manager Sucursală"
+    },
+    "stats": {
+      "sites": "Șantiere Active",
+      "workers": "Muncitori",
+      "managers": "Manageri"
+    },
+    "switcher": "Companie Activă",
+    "confirmDelete": "Sigur doriți să ștergeți acest punct de lucru? Toate datele asociate vor fi șterse definitiv."
   }
 }
