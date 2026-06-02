@@ -799,5 +799,18 @@
     },
     "switcher": "Active Company",
     "confirmDelete": "Are you sure you want to delete this business unit? All scoped data will be removed."
+  },
+  "auth2fa": {
+    "companyName": "Company / Organization Name",
+    "companyNameRequired": "Company name is required to log in",
+    "rememberCompany": "Remember Company Name",
+    "otpTitle": "Two-Factor Verification",
+    "otpSubtitle": "We have sent a verification code to your email. Enter the 6-digit code below to authenticate.",
+    "enterOtp": "Enter 6-digit verification code",
+    "resend": "Resend Code",
+    "expiresIn": "Code expires in {seconds}s",
+    "invalidOtp": "Invalid verification code. Please try again.",
+    "otpRequired": "Please enter the verification code",
+    "unauthorized": "Access Denied. You do not have the required permissions to view this resource."
   }
 }

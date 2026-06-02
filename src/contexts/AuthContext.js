@@ -14,12 +14,37 @@ import { auth, googleProvider, db } from '@/lib/firebase';
 
 const AuthContext = createContext();
 
-const DEMO_USER = {
-  uid: 'demo-admin',
-  email: 'admin@electricvision.eu',
-  displayName: 'Demo Admin',
-  role: 'admin',
+const getDemoUser = (email, displayName = null) => {
+  const emailLower = (email || '').toLowerCase();
+  let role = 'owner';
+  let name = displayName || 'Demo User';
+  
+  if (emailLower.startsWith('owner')) {
+    role = 'owner';
+    name = displayName || 'Demo Owner';
+  } else if (emailLower.startsWith('manager')) {
+    role = 'manager';
+    name = displayName || 'Demo Manager';
+  } else if (emailLower.startsWith('supervisor')) {
+    role = 'supervisor';
+    name = displayName || 'Demo Supervisor';
+  } else if (emailLower.startsWith('worker')) {
+    role = 'worker';
+    name = displayName || 'Demo Worker';
+  } else if (emailLower.startsWith('admin')) {
+    role = 'owner';
+    name = displayName || 'Demo Admin';
+  }
+  
+  return {
+    uid: `demo-${role}`,
+    email: email || 'owner@electricvision.eu',
+    displayName: name,
+    role: role,
+  };
 };
+
+const DEFAULT_DEMO_USER = getDemoUser('owner@electricvision.eu', 'Demo Owner');
 
 function isDemoMode() {
   try {
@@ -73,7 +98,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (isDemo) {
       // Demo mode: auto-login with mock user
-      setUser(DEMO_USER);
+      setUser(DEFAULT_DEMO_USER);
       setLoading(false);
       return;
     }
@@ -99,8 +124,8 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = useCallback(async () => {
     if (isDemo) {
-      setUser(DEMO_USER);
-      return DEMO_USER;
+      setUser(DEFAULT_DEMO_USER);
+      return DEFAULT_DEMO_USER;
     }
 
     setError(null);
@@ -124,8 +149,9 @@ export function AuthProvider({ children }) {
 
   const loginWithEmail = useCallback(async (email, password) => {
     if (isDemo) {
-      setUser(DEMO_USER);
-      return DEMO_USER;
+      const demoUser = getDemoUser(email);
+      setUser(demoUser);
+      return demoUser;
     }
 
     setError(null);
@@ -149,7 +175,7 @@ export function AuthProvider({ children }) {
 
   const signUpWithEmail = useCallback(async (email, password, displayName) => {
     if (isDemo) {
-      const demoNewUser = { ...DEMO_USER, email, displayName: displayName || email };
+      const demoNewUser = getDemoUser(email, displayName);
       setUser(demoNewUser);
       return demoNewUser;
     }

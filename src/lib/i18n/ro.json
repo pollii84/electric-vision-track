@@ -797,5 +797,18 @@
     },
     "switcher": "Companie Activă",
     "confirmDelete": "Sigur doriți să ștergeți acest punct de lucru? Toate datele asociate vor fi șterse definitiv."
+  },
+  "auth2fa": {
+    "companyName": "Nume Companie / Organizație",
+    "companyNameRequired": "Numele companiei este obligatoriu pentru autentificare",
+    "rememberCompany": "Reține Numele Companiei",
+    "otpTitle": "Verificare Secundară (2FA)",
+    "otpSubtitle": "Am trimis un cod de verificare pe adresa ta de email. Introdu codul de 6 cifre pentru a continua.",
+    "enterOtp": "Introdu codul de verificare din 6 cifre",
+    "resend": "Retrimite Codul",
+    "expiresIn": "Codul expiră în {seconds}s",
+    "invalidOtp": "Cod de verificare incorect. Încearcă din nou.",
+    "otpRequired": "Te rugăm să introduci codul de verificare",
+    "unauthorized": "Acces Respins. Nu aveți permisiunile necesare pentru a accesa această resursă."
   }
 }
