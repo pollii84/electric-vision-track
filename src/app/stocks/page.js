@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
+import { useToast } from '@/contexts/ToastContext';
 
 const INITIAL_STOCKS = [
   { id: '1', name: 'Copper Wire NYM 3x1.5mm²', category: 'cabling', qty: 250, unit: 'm', threshold: 100, preferredSupplier: 'Elmark' },
@@ -21,8 +22,9 @@ const SUPPLIERS = ['Elmark', 'Electro Global', 'Schneider Direct'];
 export default function StocksPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { addToast } = useToast();
 
-  const [stocks, setStocks] = useState(INITIAL_STOCKS);
+  const [stocks, setStocks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   
@@ -30,6 +32,26 @@ export default function StocksPage() {
   const [showReplenishModal, setShowReplenishModal] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [replenishQty, setReplenishQty] = useState(100);
+
+  // Initialize stocks from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('ev-warehouse-stocks');
+    if (saved) {
+      try {
+        setStocks(JSON.parse(saved));
+      } catch (err) {
+        setStocks(INITIAL_STOCKS);
+      }
+    } else {
+      setStocks(INITIAL_STOCKS);
+      localStorage.setItem('ev-warehouse-stocks', JSON.stringify(INITIAL_STOCKS));
+    }
+  }, []);
+
+  const saveStocks = (newStocks) => {
+    setStocks(newStocks);
+    localStorage.setItem('ev-warehouse-stocks', JSON.stringify(newStocks));
+  };
 
   const filteredStocks = useMemo(() => {
     let result = stocks;
@@ -51,43 +73,37 @@ export default function StocksPage() {
   }, [stocks, searchQuery, selectedCategory]);
 
   const handleSupplierChange = (id, newSupplier) => {
-    setStocks((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, preferredSupplier: newSupplier } : s))
-    );
-    // Success simulation feedback
-    alert(`Preferential supplier updated successfully for material! Assigned: ${newSupplier}`);
+    const nextStocks = stocks.map((s) => (s.id === id ? { ...s, preferredSupplier: newSupplier } : s));
+    saveStocks(nextStocks);
+    addToast(`Preferred supplier updated to ${newSupplier}`, 'info');
   };
 
   const handleOpenReplenish = (material) => {
     setSelectedMaterial(material);
-    // Suggest replenishment = Threshold - Qty + 50 units buffer
+    // Suggest replenishment
     const suggested = material.threshold - material.qty + 50;
-    setReplenishQty(suggested);
+    setReplenishQty(suggested > 0 ? suggested : 100);
     setShowReplenishModal(true);
   };
 
   const handleConfirmOrder = () => {
     if (!selectedMaterial) return;
 
-    // Simulate spawning a purchase order
-    alert(
-      `Purchase Order Generated! Spawning order for ${replenishQty} ${selectedMaterial.unit} of "${selectedMaterial.name}" from ${selectedMaterial.preferredSupplier}.`
+    const nextStocks = stocks.map((s) =>
+      s.id === selectedMaterial.id ? { ...s, qty: s.qty + Number(replenishQty) } : s
     );
+    saveStocks(nextStocks);
 
-    // Increment in-stock qty instantly for mock simulation
-    setStocks((prev) =>
-      prev.map((s) =>
-        s.id === selectedMaterial.id ? { ...s, qty: s.qty + Number(replenishQty) } : s
-      )
-    );
-
+    addToast(t('stocksAdditions.restockSuccess') || 'Stocks successfully replenished.', 'success');
     setShowReplenishModal(false);
   };
 
   const handleCompareBids = (materialName) => {
-    // Redirect to Offers bid comparison page with parameters
     router.push(`/offers?item=${encodeURIComponent(materialName)}`);
   };
+
+  // Restock event driven widget alert check
+  const lowStockItems = stocks.filter((s) => s.qty < s.threshold);
 
   return (
     <Layout>
@@ -95,6 +111,45 @@ export default function StocksPage() {
       <div className="page-header">
         <h1>📊 {t('stocks.title')}</h1>
       </div>
+
+      {/* Task Driven Restocking Banner Alert */}
+      {lowStockItems.length > 0 && (
+        <div style={{
+          background: 'rgba(255, 74, 74, 0.08)',
+          border: '1px solid rgba(255, 74, 74, 0.2)',
+          borderRadius: 'var(--radius-md)',
+          padding: '16px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h4 style={{ margin: '0 0 4px 0', fontSize: 'var(--fs-sm)', color: 'var(--clr-danger)', fontWeight: 600 }}>
+              ⚠️ Low Stock Warning Triggers ({lowStockItems.length})
+            </h4>
+            <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>
+              Some materials have fallen below safety threshold limits due to recent task site allocations.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => {
+                // Bulk replenish mock
+                const nextStocks = stocks.map((s) =>
+                  s.qty < s.threshold ? { ...s, qty: s.threshold + 50 } : s
+                );
+                saveStocks(nextStocks);
+                addToast('All critical supplies replenished to safety level!', 'success');
+              }}
+              className="btn btn-primary btn-sm"
+              style={{ background: 'var(--clr-danger)', borderColor: 'var(--clr-danger)' }}
+            >
+              Bulk Restock All
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}>
@@ -148,21 +203,26 @@ export default function StocksPage() {
                 {filteredStocks.map((material) => {
                   const isLowStock = material.qty < material.threshold;
                   return (
-                    <tr key={material.id}>
+                    <tr
+                      key={material.id}
+                      style={{
+                        background: isLowStock ? 'rgba(255, 74, 74, 0.02)' : 'transparent',
+                        transition: 'background 0.25s ease'
+                      }}
+                    >
                       <td className="font-semibold">{material.name}</td>
                       <td>
                         <span className="badge badge-neutral">
                           {t(`stocks.categories.${material.category}`)}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center' }} className="font-bold">
+                      <td style={{ textAlign: 'center' }} className={isLowStock ? 'font-bold text-danger' : 'font-bold'}>
                         {material.qty} {material.unit}
                       </td>
                       <td style={{ textAlign: 'center' }} className="text-muted">
                         {material.threshold} {material.unit}
                       </td>
                       <td>
-                        {/* Interactive Manager Preferred Supplier Selector Dropdown */}
                         <select
                           className="form-select"
                           value={material.preferredSupplier}
@@ -179,7 +239,7 @@ export default function StocksPage() {
                         {isLowStock ? (
                           <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse 1s infinite' }} />
-                            {t('stocks.statuses.low')}
+                            {t('stocksAdditions.lowStockThreshold') || 'Below Safe Level'}
                           </span>
                         ) : (
                           <span className="badge badge-success">
@@ -188,7 +248,6 @@ export default function StocksPage() {
                         )}
                       </td>
                       <td>
-                        {/* Dual Resolution Actions */}
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                           <button
                             className="btn btn-secondary btn-xs"
@@ -197,15 +256,13 @@ export default function StocksPage() {
                             🔍 {t('stocks.buttons.compareSupplierBids')}
                           </button>
                           
-                          {isLowStock && (
-                            <button
-                              className="btn btn-primary btn-xs"
-                              onClick={() => handleOpenReplenish(material)}
-                              style={{ background: 'var(--clr-accent)', borderColor: 'var(--clr-accent)', color: 'var(--clr-bg)' }}
-                            >
-                              📦 {t('stocks.buttons.orderFromPreferred')}
-                            </button>
-                          )}
+                          <button
+                            className="btn btn-primary btn-xs"
+                            onClick={() => handleOpenReplenish(material)}
+                            style={{ background: isLowStock ? 'var(--clr-accent)' : 'var(--clr-primary)', borderColor: isLowStock ? 'var(--clr-accent)' : 'var(--clr-primary)', color: isLowStock ? 'var(--clr-bg)' : '#FFF' }}
+                          >
+                            📦 {t('stocksAdditions.restockButton') || 'Restock Supply'}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -219,25 +276,13 @@ export default function StocksPage() {
 
       {/* Order from Preferred Replenishment Confirmation Modal */}
       {showReplenishModal && selectedMaterial && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowReplenishModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="replenish-title"
-        >
+        <div className="modal-backdrop" onClick={() => setShowReplenishModal(false)} role="dialog" aria-modal="true" aria-labelledby="replenish-title">
           <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title" id="replenish-title">
-                {t('stocks.buttons.orderFromPreferred')}
+                📦 {t('stocksAdditions.restockTitle') || 'Task-Driven Restocking'}
               </h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowReplenishModal(false)}
-                aria-label={t('common.buttons.close')}
-              >
-                ✕
-              </button>
+              <button className="modal-close" onClick={() => setShowReplenishModal(false)}>✕</button>
             </div>
 
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
@@ -264,15 +309,14 @@ export default function StocksPage() {
                 borderRadius: 'var(--radius-sm)',
                 borderLeft: '4px solid var(--clr-primary)'
               }}>
-                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>Preferential Supplier Assigned:</div>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>Supplier Assigned:</div>
                 <div className="font-bold" style={{ color: 'var(--clr-primary)', fontSize: 'var(--fs-base)', marginTop: 2 }}>
                   {selectedMaterial.preferredSupplier}
                 </div>
               </div>
 
-              {/* Replenish quantity input field */}
               <div className="form-group">
-                <label className="form-label" htmlFor="replenish-qty">Replenishment Order Quantity *</label>
+                <label className="form-label" htmlFor="replenish-qty">{t('stocksAdditions.quantityToRestock')}</label>
                 <input
                   id="replenish-qty"
                   className="form-input"
@@ -287,17 +331,9 @@ export default function StocksPage() {
             </div>
 
             <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowReplenishModal(false)}
-              >
-                {t('common.buttons.cancel')}
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleConfirmOrder}
-              >
-                Confirm & Generate Purchase Invoice
+              <button className="btn btn-secondary" onClick={() => setShowReplenishModal(false)}>{t('common.buttons.cancel')}</button>
+              <button className="btn btn-primary" onClick={handleConfirmOrder}>
+                Confirm & Restock
               </button>
             </div>
           </div>

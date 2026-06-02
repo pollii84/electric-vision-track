@@ -18,6 +18,7 @@
     "files": "Fișiere",
     "settings": "Setări",
     "companies": "Unități Afacere",
+    "planViewer": "Vizualizator Planuri",
     "more": "Mai mult",
     "menu": "Meniu",
     "sections": {
@@ -810,5 +811,47 @@
     "invalidOtp": "Cod de verificare incorect. Încearcă din nou.",
     "otpRequired": "Te rugăm să introduci codul de verificare",
     "unauthorized": "Acces Respins. Nu aveți permisiunile necesare pentru a accesa această resursă."
+  },
+  "planViewer": {
+    "title": "Vizualizator Planuri Șantier",
+    "selectSite": "Selectează Desenul Șantierului",
+    "zoomIn": "Mărește",
+    "zoomOut": "Micșorează",
+    "reset": "Resetează Zoom",
+    "pinTask": "Fixează Sarcină",
+    "canvasPlaceholder": "Zonă Canvas Desen",
+    "clickToPin": "Apasă pe desen pentru a plasa un pin de sarcină",
+    "taskDetails": "Detalii Sarcină",
+    "close": "Închide",
+    "status": "Stare",
+    "priority": "Prioritate",
+    "assignedTo": "Asignat lui",
+    "openTask": "Deschide Detalii Sarcini",
+    "attachments": "Atașamente Șantier",
+    "docTypeDwg": "Desen Tehnic CAD (.DWG)",
+    "docTypePdf": "Schemă Cablare (.PDF)",
+    "docTypePng": "Plan Etaj Planșă (.PNG)",
+    "pinInstructions": "Treceți cu mouse-ul și faceți clic oriunde pe schiță pentru a fixa o sarcină existentă.",
+    "selectTaskToPin": "Selectează o Sarcină de Fixat",
+    "noTasksToPin": "Nu există sarcini nefixate disponibile pentru acest șantier."
+  },
+  "tasksAdditions": {
+    "changeOrder": "Notă de Comandă Suplimentară",
+    "createChangeOrder": "Creează Notă Comandă Suplimentară",
+    "changeOrderManHours": "Ore-Om Suplimentare",
+    "changeOrderMaterials": "Materiale Suplimentare",
+    "changeOrderReason": "Motivul Modificării",
+    "submitChangeOrder": "Trimite Nota Suplimentară",
+    "viewPlan": "Vezi Plan",
+    "addPhoto": "Adaugă Poză Progres",
+    "photoCaptured": "Poza de progres a fost salvată cu succes!",
+    "cameraSimulate": "Simulează Captură Cameră"
+  },
+  "stocksAdditions": {
+    "restockTitle": "Reaprovizionare bazată pe Sarcini",
+    "restockSuccess": "Stocurile au fost reaprovizionate cu succes.",
+    "quantityToRestock": "Cantitate de Reaprovizionat",
+    "restockButton": "Reaprovizionează",
+    "lowStockThreshold": "Sub Nivelul de Siguranță"
   }
 }

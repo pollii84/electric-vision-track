@@ -22,6 +22,7 @@ const NAV_SECTIONS = [
       { key: 'sites', href: '/sites', icon: '🏗️' },
       { key: 'workers', href: '/workers', icon: '👷' },
       { key: 'tasks', href: '/tasks', icon: '📋' },
+      { key: 'planViewer', href: '/plan-viewer', icon: '📐' },
       { key: 'timesheets', href: '/timesheets', icon: '⏱️' },
     ],
   },
@@ -111,7 +112,7 @@ export default function Layout({ children }) {
         
         // Worker can only see general, sites, tasks, timesheets, files, settings
         if (role === 'worker') {
-          const allowed = ['dashboard', 'calendar', 'sites', 'workers', 'tasks', 'timesheets', 'files', 'settings'];
+          const allowed = ['dashboard', 'calendar', 'sites', 'workers', 'tasks', 'planViewer', 'timesheets', 'files', 'settings'];
           return allowed.includes(item.key);
         }
         

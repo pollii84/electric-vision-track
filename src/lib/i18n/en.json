@@ -18,6 +18,7 @@
     "files": "Files",
     "settings": "Settings",
     "companies": "Business Units",
+    "planViewer": "Blueprint Viewer",
     "more": "More",
     "menu": "Menu",
     "sections": {
@@ -812,5 +813,47 @@
     "invalidOtp": "Invalid verification code. Please try again.",
     "otpRequired": "Please enter the verification code",
     "unauthorized": "Access Denied. You do not have the required permissions to view this resource."
+  },
+  "planViewer": {
+    "title": "Plan Drawing Viewer",
+    "selectSite": "Select Site Drawing",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "reset": "Reset Zoom",
+    "pinTask": "Pin Task",
+    "canvasPlaceholder": "Drawing Canvas Area",
+    "clickToPin": "Click on the drawing to place a task pin",
+    "taskDetails": "Task Details",
+    "close": "Close",
+    "status": "Status",
+    "priority": "Priority",
+    "assignedTo": "Assigned To",
+    "openTask": "Open Full Task Details",
+    "attachments": "Site Attachments",
+    "docTypeDwg": "CAD Design Drawing (.DWG)",
+    "docTypePdf": "Wiring Schematic (.PDF)",
+    "docTypePng": "Floor Layout Plan (.PNG)",
+    "pinInstructions": "Hover and click anywhere on the blueprint to pin an existing task.",
+    "selectTaskToPin": "Select a Task to Pin",
+    "noTasksToPin": "No unpinned tasks available for this site."
+  },
+  "tasksAdditions": {
+    "changeOrder": "Change Order",
+    "createChangeOrder": "Create Task Change Order",
+    "changeOrderManHours": "Additional Man-Hours",
+    "changeOrderMaterials": "Additional Materials",
+    "changeOrderReason": "Reason for Change",
+    "submitChangeOrder": "Submit Change Order",
+    "viewPlan": "View Plan",
+    "addPhoto": "Add Progress Photo",
+    "photoCaptured": "Progress photo captured successfully!",
+    "cameraSimulate": "Simulate Camera Capture"
+  },
+  "stocksAdditions": {
+    "restockTitle": "Task-Driven Restocking",
+    "restockSuccess": "Stocks successfully replenished.",
+    "quantityToRestock": "Quantity to Restock",
+    "restockButton": "Restock Supply",
+    "lowStockThreshold": "Below Safe Level"
   }
 }
