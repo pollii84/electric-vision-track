@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 
@@ -255,13 +256,15 @@ export default function LoginPage() {
         {/* Logo & Header */}
         <div className="login-header">
           <div className="login-logo">
-            <img
-              src="/images/logo_header.png"
-              alt="ElectricVision"
-              width={125}
-              height={125}
-              style={{ objectFit: 'contain' }}
-            />
+            <Link href="/marketing">
+              <img
+                src="/images/logo_header.png"
+                alt="ElectricVision"
+                width={125}
+                height={125}
+                style={{ objectFit: 'contain', cursor: 'pointer' }}
+              />
+            </Link>
           </div>
           <h1 className="login-title">ElectricVision Track</h1>
           <p className="login-subtitle">

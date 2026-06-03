@@ -142,11 +142,13 @@ export default function Layout({ children }) {
       {/* Desktop Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo" style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
-          <img
-            src="/images/logo_header.png"
-            alt="ElectricVision"
-            style={{ height: 49, width: 'auto' }}
-          />
+          <Link href="/marketing" style={{ display: 'inline-block' }}>
+            <img
+              src="/images/logo_header.png"
+              alt="ElectricVision"
+              style={{ height: 49, width: 'auto', cursor: 'pointer' }}
+            />
+          </Link>
           {/* Company Switcher Dropdown — Owner only */}
           {user?.role === 'owner' && (
             <div style={{ width: '100%', padding: '0 8px' }}>

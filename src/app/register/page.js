@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 
@@ -246,13 +247,15 @@ function RegisterForm() {
         {/* Logo & Header */}
         <div className="login-header">
           <div className="login-logo">
-            <img
-              src="/images/logo_header.png"
-              alt="ElectricVision"
-              width={125}
-              height={125}
-              style={{ objectFit: 'contain' }}
-            />
+            <Link href="/marketing">
+              <img
+                src="/images/logo_header.png"
+                alt="ElectricVision"
+                width={125}
+                height={125}
+                style={{ objectFit: 'contain', cursor: 'pointer' }}
+              />
+            </Link>
           </div>
           <h1 className="login-title">{t('register.title')}</h1>
           <p className="login-subtitle">{t('register.subtitle')}</p>
