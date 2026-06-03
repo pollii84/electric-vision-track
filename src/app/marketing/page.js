@@ -251,7 +251,7 @@ export default function MarketingPage() {
               {t('marketing.nav.login')}
             </Link>
             <Link href="/register" id="nav-register" className="btn btn-primary btn-sm">
-              {t('marketing.nav.register')}
+              {t('marketing.nav.authentication') || 'Authentication'}
             </Link>
           </div>
         </nav>
@@ -381,7 +381,7 @@ export default function MarketingPage() {
             }}
           >
             <Link href="/register" id="hero-cta-register" className="btn btn-primary btn-lg">
-              {t('marketing.hero.cta')}
+              {t('marketing.nav.authentication') || 'Authentication'}
               <span aria-hidden="true" style={{ fontSize: 18 }}>→</span>
             </Link>
             <button id="hero-cta-demo" className="btn btn-secondary btn-lg">

@@ -14,38 +14,71 @@ import { auth, googleProvider, db } from '@/lib/firebase';
 
 const AuthContext = createContext();
 
-const getDemoUser = (email, displayName = null) => {
-  const emailLower = (email || '').toLowerCase();
-  let role = 'owner';
-  let name = displayName || 'Demo User';
-  
-  if (emailLower.startsWith('owner')) {
-    role = 'owner';
-    name = displayName || 'Demo Owner';
-  } else if (emailLower.startsWith('manager')) {
-    role = 'manager';
-    name = displayName || 'Demo Manager';
-  } else if (emailLower.startsWith('supervisor')) {
-    role = 'supervisor';
-    name = displayName || 'Demo Supervisor';
-  } else if (emailLower.startsWith('worker')) {
-    role = 'worker';
-    name = displayName || 'Demo Worker';
-  } else if (emailLower.startsWith('admin')) {
-    role = 'owner';
-    name = displayName || 'Demo Admin';
-  }
-  
-  return {
-    uid: `demo-${role}`,
-    email: email || 'owner@electricvision.eu',
-    displayName: name,
-    role: role,
-  };
+// ── localStorage account store helpers ──
+const ACCOUNTS_KEY = 'ev-accounts';
+const SESSION_KEY = 'ev-session';
+
+// Pre-seeded test account
+const TEST_ACCOUNT = {
+  id: 'account-test-moga',
+  company: {
+    name: 'MOGA_PAUL_PFA',
+    cui: 'RO12345678',
+    euid: 'ROONRC.J12/1234/2024',
+  },
+  user: {
+    name: 'Paul Paul',
+    email: 'polimoga@gmail.com',
+    phone: '+40700000000',
+  },
+  role: 'owner',
+  password: 'test1234',
+  createdAt: new Date().toISOString(),
 };
 
-const DEFAULT_DEMO_USER = getDemoUser('owner@electricvision.eu', 'Demo Owner');
+function getStoredAccounts() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    const accounts = raw ? JSON.parse(raw) : [];
+    // Ensure test account is always present
+    const hasTest = accounts.some((a) => a.id === TEST_ACCOUNT.id);
+    if (!hasTest) {
+      accounts.push(TEST_ACCOUNT);
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+    }
+    return accounts;
+  } catch {
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([TEST_ACCOUNT]));
+    return [TEST_ACCOUNT];
+  }
+}
 
+function saveAccounts(accounts) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+function getSession() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  if (typeof window === 'undefined') return;
+  if (session) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } else {
+    localStorage.removeItem(SESSION_KEY);
+  }
+}
+
+// ── Demo / Firebase mode detection ──
 function isDemoMode() {
   try {
     return auth.app.options.apiKey === 'YOUR_API_KEY';
@@ -97,8 +130,13 @@ export function AuthProvider({ children }) {
   // Initialize auth state
   useEffect(() => {
     if (isDemo) {
-      // Demo mode: auto-login with mock user
-      setUser(DEFAULT_DEMO_USER);
+      // Demo mode: restore session from localStorage
+      const session = getSession();
+      if (session) {
+        setUser(session);
+      }
+      // Ensure test account exists in store
+      getStoredAccounts();
       setLoading(false);
       return;
     }
@@ -122,22 +160,73 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [isDemo]);
 
-  const loginWithGoogle = useCallback(async () => {
+  // ── Create Account (registration) ──
+  // Creates a new account with company details and user details.
+  // Automatically assigns "owner" role.
+  const createAccount = useCallback(async ({ company, user: userDetails, password }) => {
     if (isDemo) {
-      setUser(DEFAULT_DEMO_USER);
-      return DEFAULT_DEMO_USER;
+      const accounts = getStoredAccounts();
+
+      // Check if email already exists
+      const existing = accounts.find(
+        (a) => a.user.email.toLowerCase() === userDetails.email.toLowerCase()
+      );
+      if (existing) {
+        throw new Error('An account with this email already exists.');
+      }
+
+      const newAccount = {
+        id: `account-${Date.now()}`,
+        company: {
+          name: company.name,
+          cui: company.cui,
+          euid: company.euid,
+        },
+        user: {
+          name: userDetails.name,
+          email: userDetails.email,
+          phone: userDetails.phone || '',
+        },
+        role: 'owner', // Auto-assign owner
+        password: password,
+        createdAt: new Date().toISOString(),
+      };
+
+      accounts.push(newAccount);
+      saveAccounts(accounts);
+
+      // Auto-login after registration
+      const sessionUser = {
+        uid: newAccount.id,
+        email: newAccount.user.email,
+        displayName: newAccount.user.name,
+        role: 'owner',
+        company: newAccount.company,
+      };
+      setUser(sessionUser);
+      saveSession(sessionUser);
+      return sessionUser;
     }
 
+    // Firebase mode
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const role = await ensureUserDocument(result.user);
+      const result = await createUserWithEmailAndPassword(auth, userDetails.email, password);
+      if (userDetails.name) {
+        await updateProfile(result.user, { displayName: userDetails.name });
+      }
+      const role = await ensureUserDocument(result.user, 'owner');
       const userData = {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: result.user.displayName,
+        displayName: userDetails.name || result.user.displayName,
         photoURL: result.user.photoURL,
         role,
+        company: {
+          name: company.name,
+          cui: company.cui,
+          euid: company.euid,
+        },
       };
       setUser(userData);
       return userData;
@@ -147,11 +236,32 @@ export function AuthProvider({ children }) {
     }
   }, [isDemo]);
 
+  // ── Login with Email (no 2FA) ──
   const loginWithEmail = useCallback(async (email, password) => {
     if (isDemo) {
-      const demoUser = getDemoUser(email);
-      setUser(demoUser);
-      return demoUser;
+      const accounts = getStoredAccounts();
+      const account = accounts.find(
+        (a) => a.user.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (!account) {
+        throw new Error('No account found with this email. Please create an account first.');
+      }
+
+      if (account.password !== password) {
+        throw new Error('Invalid password. Please try again.');
+      }
+
+      const sessionUser = {
+        uid: account.id,
+        email: account.user.email,
+        displayName: account.user.name,
+        role: account.role,
+        company: account.company,
+      };
+      setUser(sessionUser);
+      saveSession(sessionUser);
+      return sessionUser;
     }
 
     setError(null);
@@ -173,24 +283,29 @@ export function AuthProvider({ children }) {
     }
   }, [isDemo]);
 
-  const signUpWithEmail = useCallback(async (email, password, displayName) => {
+  const loginWithGoogle = useCallback(async () => {
     if (isDemo) {
-      const demoNewUser = getDemoUser(email, displayName);
-      setUser(demoNewUser);
-      return demoNewUser;
+      // In demo mode, create a generic demo owner session
+      const sessionUser = {
+        uid: 'demo-google',
+        email: 'owner@electricvision.eu',
+        displayName: 'Demo Owner',
+        role: 'owner',
+        company: { name: 'Demo Company', cui: '', euid: '' },
+      };
+      setUser(sessionUser);
+      saveSession(sessionUser);
+      return sessionUser;
     }
 
     setError(null);
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      if (displayName) {
-        await updateProfile(result.user, { displayName });
-      }
-      const role = await ensureUserDocument(result.user, 'worker');
+      const result = await signInWithPopup(auth, googleProvider);
+      const role = await ensureUserDocument(result.user);
       const userData = {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: displayName || result.user.displayName,
+        displayName: result.user.displayName,
         photoURL: result.user.photoURL,
         role,
       };
@@ -201,6 +316,15 @@ export function AuthProvider({ children }) {
       throw err;
     }
   }, [isDemo]);
+
+  // Legacy signup — redirects to createAccount with minimal company info
+  const signUpWithEmail = useCallback(async (email, password, displayName) => {
+    return createAccount({
+      company: { name: 'My Company', cui: '', euid: '' },
+      user: { name: displayName || '', email, phone: '' },
+      password,
+    });
+  }, [createAccount]);
 
   const resetPassword = useCallback(async (email) => {
     if (isDemo) {
@@ -219,6 +343,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     if (isDemo) {
       setUser(null);
+      saveSession(null);
       return;
     }
 
@@ -239,6 +364,7 @@ export function AuthProvider({ children }) {
     loading,
     error,
     isDemo,
+    createAccount,
     loginWithGoogle,
     loginWithEmail,
     signUpWithEmail,

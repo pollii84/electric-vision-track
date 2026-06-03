@@ -108,7 +108,9 @@
     "passwordsMustMatch": "Parolele trebuie să coincidă",
     "accountCreated": "Contul a fost creat cu succes",
     "demoMode": "Mod Demo",
-    "demoModeDescription": "Rulează în mod demo. Datele nu sunt salvate."
+    "demoModeDescription": "Rulează în mod demo. Datele nu sunt salvate.",
+    "testAccount": "Cont de Test",
+    "displayName": "Nume Afișat"
   },
   "dashboard": {
     "title": "Panou de Control",
@@ -647,7 +649,8 @@
       "savings": "Economii",
       "pricing": "Prețuri",
       "login": "Autentificare",
-      "register": "Înregistrare"
+      "register": "Înregistrare",
+      "authentication": "Autentificare"
     },
     "features": {
       "title": "Tot Ce Ai Nevoie Pentru a-ți Conduce Afacerea",
@@ -759,14 +762,32 @@
   "register": {
     "title": "Creează Contul Tău de Afaceri",
     "subtitle": "Configurează spațiul de lucru al companiei tale în mai puțin de 2 minute",
+    "steps": {
+      "company": "Companie",
+      "user": "Utilizator"
+    },
+    "sections": {
+      "companyDetails": "Detalii Companie",
+      "userDetails": "Detalii Cont Proprietar"
+    },
     "fields": {
       "companyName": "Numele Companiei",
+      "cui": "CUI Companie",
+      "euid": "EUID Companie",
+      "userName": "Nume Complet",
       "ownerName": "Numele Complet al Proprietarului",
       "email": "Email de Afaceri",
+      "phone": "Număr de Telefon",
       "password": "Parolă",
       "confirmPassword": "Confirmă Parola",
       "package": "Selectează Planul Tău"
     },
+    "hints": {
+      "cui": "Cod unic de identificare fiscală",
+      "euid": "Identificator unic european"
+    },
+    "nextStep": "Continuă la Detalii Utilizator",
+    "ownerRoleAssigned": "Vei fi desemnat ca Proprietar al Contului",
     "signUpWithGoogle": "Înregistrare cu Google",
     "createAccount": "Creează Cont de Afaceri",
     "alreadyHaveAccount": "Ai deja un cont?",
@@ -775,7 +796,10 @@
     "termsAgreement": "Prin crearea contului, accepți Termenii și Condițiile și Politica de Confidențialitate.",
     "success": "Contul tău de afaceri a fost creat cu succes! Redirecționare către panoul de control...",
     "companyNameRequired": "Numele companiei este obligatoriu",
-    "ownerNameRequired": "Numele proprietarului este obligatoriu"
+    "cuiRequired": "CUI-ul companiei este obligatoriu",
+    "euidRequired": "EUID-ul companiei este obligatoriu",
+    "ownerNameRequired": "Numele proprietarului este obligatoriu",
+    "phoneRequired": "Numărul de telefon este obligatoriu"
   },
   "companies": {
     "title": "Subdiviziuni Companie",

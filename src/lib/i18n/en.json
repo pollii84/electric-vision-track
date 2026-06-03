@@ -110,7 +110,9 @@
     "passwordsMustMatch": "Passwords must match",
     "accountCreated": "Account created successfully",
     "demoMode": "Demo Mode",
-    "demoModeDescription": "Running in demo mode. Data is not persisted."
+    "demoModeDescription": "Running in demo mode. Data is not persisted.",
+    "testAccount": "Test Account",
+    "displayName": "Display Name"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -649,7 +651,8 @@
       "savings": "Savings",
       "pricing": "Pricing",
       "login": "Log In",
-      "register": "Register"
+      "register": "Register",
+      "authentication": "Authentication"
     },
     "features": {
       "title": "Everything You Need to Run Your Business",
@@ -761,14 +764,32 @@
   "register": {
     "title": "Create Your Business Account",
     "subtitle": "Set up your company workspace in under 2 minutes",
+    "steps": {
+      "company": "Company",
+      "user": "User"
+    },
+    "sections": {
+      "companyDetails": "Company Details",
+      "userDetails": "Owner Account Details"
+    },
     "fields": {
       "companyName": "Company Name",
+      "cui": "Company CUI",
+      "euid": "Company EUID",
+      "userName": "Full Name",
       "ownerName": "Business Owner Full Name",
       "email": "Business Email",
+      "phone": "Phone Number",
       "password": "Password",
       "confirmPassword": "Confirm Password",
       "package": "Select Your Plan"
     },
+    "hints": {
+      "cui": "Unique tax identification code",
+      "euid": "European Unique Identifier"
+    },
+    "nextStep": "Continue to User Details",
+    "ownerRoleAssigned": "You will be assigned as the Account Owner",
     "signUpWithGoogle": "Sign up with Google",
     "createAccount": "Create Business Account",
     "alreadyHaveAccount": "Already have an account?",
@@ -777,7 +798,10 @@
     "termsAgreement": "By creating an account, you agree to our Terms of Service and Privacy Policy.",
     "success": "Your business account has been created successfully! Redirecting to your dashboard...",
     "companyNameRequired": "Company name is required",
-    "ownerNameRequired": "Owner name is required"
+    "cuiRequired": "Company CUI is required",
+    "euidRequired": "Company EUID is required",
+    "ownerNameRequired": "Owner name is required",
+    "phoneRequired": "Phone number is required"
   },
   "companies": {
     "title": "Business Units",
