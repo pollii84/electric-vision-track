@@ -249,14 +249,47 @@ export default function Layout({ children }) {
               ⚡ DEMO MODE
             </div>
           )}
-          <div className="sidebar-user" onClick={logout} title={t('common.logout')}>
+          <div className="sidebar-user" style={{ cursor: 'default' }}>
             <div className="sidebar-avatar">
               {getInitials(user?.displayName)}
             </div>
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-name">{user?.displayName || 'User'}</div>
+            <div className="sidebar-user-info" style={{ flex: 1, minWidth: 0 }}>
+              <div className="sidebar-user-name" title={user?.displayName || 'User'}>
+                {user?.displayName || 'User'}
+              </div>
               <div className="sidebar-user-role">{user?.role || 'admin'}</div>
             </div>
+            <button
+              onClick={logout}
+              className="btn btn-ghost"
+              title={t('common.logout')}
+              aria-label={t('common.logout')}
+              style={{
+                padding: 6,
+                minWidth: 'auto',
+                marginLeft: 'auto',
+                color: 'var(--clr-danger-light)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'none';
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
       </aside>
@@ -358,6 +391,51 @@ export default function Layout({ children }) {
                   ))}
                 </div>
               ))}
+
+              {/* Mobile Logout Option */}
+              <div style={{
+                marginTop: 'var(--sp-md)',
+                paddingTop: 'var(--sp-md)',
+                borderTop: '1px solid var(--clr-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+                  <div className="sidebar-avatar" style={{ width: 32, height: 32, fontSize: 'var(--fs-xs)' }}>
+                    {getInitials(user?.displayName)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--fs-sm)' }}>{user?.displayName || 'User'}</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', textTransform: 'capitalize' }}>
+                      {user?.role || 'admin'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    gap: 8,
+                    color: 'var(--clr-danger-light)',
+                    borderColor: 'rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>{t('common.logout') || 'Logout'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
