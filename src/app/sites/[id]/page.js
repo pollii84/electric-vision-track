@@ -1,21 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', address: 'Str. Eroilor 15, Cluj-Napoca', clientName: 'Popescu Ion', status: 'in_progress', progress: 65, budget: 125000, startDate: '2026-03-15', workers: ['Andrei P.', 'Maria I.', 'Ion M.', 'Vlad G.'] },
-  { id: '2', name: 'Bloc Florești - Et. 3', address: 'Str. Avram Iancu 42, Florești', clientName: 'SC Residential SRL', status: 'in_progress', progress: 40, budget: 85000, startDate: '2026-04-01', workers: ['Elena D.', 'Ana P.', 'Mihai S.'] },
-  { id: '3', name: 'Birouri Sigma Center', address: 'Bd. 21 Decembrie 77, Cluj-Napoca', clientName: 'Sigma Development', status: 'planned', progress: 0, budget: 210000, startDate: '2026-07-01', workers: [] },
-  { id: '4', name: 'Casa Marin - Borșa', address: 'Str. Libertății 8, Borșa', clientName: 'Marin Alexandru', status: 'completed', progress: 100, budget: 45000, startDate: '2026-01-10', workers: [] },
-  { id: '5', name: 'Hotel Panoramic Renovare', address: 'Str. Republicii 120, Cluj-Napoca', clientName: 'SC Turism SA', status: 'in_progress', progress: 25, budget: 350000, startDate: '2026-05-01', workers: ['Andrei P.', 'Maria I.', 'Ion M.', 'Elena D.', 'Vlad G.', 'Ana P.', 'Mihai S.', 'Cristian B.'] },
-  { id: '6', name: 'Depozit Logistic Turda', address: 'Zona Industrială, Turda', clientName: 'SC Logistica SRL', status: 'on_hold', progress: 15, budget: 180000, startDate: '2026-02-20', workers: ['Ion M.'] },
-  { id: '7', name: 'Restaurant Bella Vista', address: 'Str. Napoca 5, Cluj-Napoca', clientName: 'Bella Vista SRL', status: 'planned', progress: 0, budget: 95000, startDate: '2026-08-15', workers: [] },
-  { id: '8', name: 'Clădire Rezidențială Dej', address: 'Str. 1 Mai 33, Dej', clientName: 'SC Imobiliare SA', status: 'in_progress', progress: 55, budget: 420000, startDate: '2026-04-10', workers: ['Andrei P.', 'Elena D.', 'Mihai S.', 'Ana P.', 'Vlad G.'] },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc } from '@/lib/firestore';
 
 const STATUS_BADGES = {
   planned: 'badge-primary',
@@ -67,11 +58,72 @@ export default function SiteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const siteId = params.id;
-  const site = useMemo(() => {
-    return DEMO_SITES.find((s) => s.id === siteId) || DEMO_SITES[0];
-  }, [siteId]);
+  const [site, setSite] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    clientName: '',
+    description: '',
+    status: 'planned',
+    startDate: '',
+    endDate: '',
+    budget: '',
+  });
+
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    setLoading(true);
+    const unsubscribe = onTenantDocSnapshot(tenantId, 'sites', params.id, (data) => {
+      setSite(data);
+      if (data) {
+        setFormData({
+          name: data.name || '',
+          address: data.address || '',
+          clientName: data.clientName || '',
+          description: data.description || '',
+          status: data.status || 'planned',
+          startDate: data.startDate || '',
+          endDate: data.endDate || '',
+          budget: data.budget !== undefined ? data.budget : '',
+        });
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  const handleFormChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSave = async () => {
+    if (!formData.name.trim() || !formData.clientName.trim() || !formData.address.trim() || !tenantId || !params.id) return;
+    try {
+      await updateTenantDoc(tenantId, 'sites', params.id, {
+        ...formData,
+        budget: Number(formData.budget) || 0,
+      });
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Failed to update site:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tenantId || !params.id) return;
+    if (confirm(t('sites.confirmDelete') || 'Are you sure you want to delete this site?')) {
+      try {
+        await deleteTenantDoc(tenantId, 'sites', params.id);
+        router.push('/sites');
+      } catch (err) {
+        console.error('Failed to delete site:', err);
+      }
+    }
+  };
 
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -98,6 +150,41 @@ export default function SiteDetailPage() {
     return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase();
   };
 
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
+
+  if (!site) {
+    return (
+      <Layout>
+        <div className="empty-state">
+          <div className="empty-state-icon">🏗️</div>
+          <div className="empty-state-title">{t('sites.detail.notFound') || 'Site not found'}</div>
+          <div className="empty-state-desc">{t('sites.detail.notFoundDescription') || 'The site could not be found or has been deleted.'}</div>
+          <Link href="/sites" className="btn btn-primary">
+            {t('common.buttons.back')}
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       {/* Back to list and Actions Header */}
@@ -120,12 +207,18 @@ export default function SiteDetailPage() {
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
-          <button className="btn btn-secondary">{t('sites.editSite')}</button>
-          <button className="btn btn-danger" onClick={() => {
-            if (confirm(t('sites.confirmDelete'))) {
-              router.push('/sites');
-            }
-          }}>{t('sites.deleteSite')}</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowEditModal(true)}
+          >
+            {t('sites.editSite')}
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={handleDelete}
+          >
+            {t('sites.deleteSite')}
+          </button>
         </div>
       </div>
 
@@ -198,13 +291,13 @@ export default function SiteDetailPage() {
             <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
               <h3 style={{ margin: 0 }}>👷 {t('sites.fields.assignedWorkers')}</h3>
 
-              {site.workers.length === 0 ? (
+              {(site.workers || []).length === 0 ? (
                 <div className="text-muted text-sm" style={{ padding: 'var(--sp-md) 0' }}>
                   No workers assigned to this site yet.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
-                  {site.workers.map((workerName, i) => (
+                  {(site.workers || []).map((workerName, i) => (
                     <div
                       key={workerName}
                       style={{
@@ -401,6 +494,172 @@ export default function SiteDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Site Modal */}
+      {showEditModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowEditModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-site-title"
+        >
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="edit-site-title">
+                {t('sites.editSite') || 'Edit Site'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowEditModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Site Name */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-name">
+                  {t('sites.fields.name')} *
+                </label>
+                <input
+                  id="edit-site-name"
+                  className="form-input"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Client Name */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-client">
+                  {t('sites.fields.client')} *
+                </label>
+                <input
+                  id="edit-site-client"
+                  className="form-input"
+                  type="text"
+                  value={formData.clientName}
+                  onChange={(e) => handleFormChange('clientName', e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Address */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-address">
+                  {t('sites.fields.address')} *
+                </label>
+                <input
+                  id="edit-site-address"
+                  className="form-input"
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => handleFormChange('address', e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-description">
+                  {t('sites.fields.description')}
+                </label>
+                <textarea
+                  id="edit-site-description"
+                  className="form-input"
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => handleFormChange('description', e.target.value)}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Status */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-status">
+                  {t('sites.fields.status')}
+                </label>
+                <select
+                  id="edit-site-status"
+                  className="form-select"
+                  value={formData.status}
+                  onChange={(e) => handleFormChange('status', e.target.value)}
+                >
+                  <option value="planned">{t('sites.statuses.planned')}</option>
+                  <option value="in_progress">{t('sites.statuses.in_progress')}</option>
+                  <option value="on_hold">{t('sites.statuses.on_hold')}</option>
+                  <option value="completed">{t('sites.statuses.completed')}</option>
+                </select>
+              </div>
+
+              {/* Dates */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-site-startDate">
+                    {t('sites.fields.startDate')}
+                  </label>
+                  <input
+                    id="edit-site-startDate"
+                    className="form-input"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => handleFormChange('startDate', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-site-endDate">
+                    {t('sites.fields.endDate')}
+                  </label>
+                  <input
+                    id="edit-site-endDate"
+                    className="form-input"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => handleFormChange('endDate', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-site-budget">
+                  {t('sites.fields.budget')} (RON)
+                </label>
+                <input
+                  id="edit-site-budget"
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.budget}
+                  onChange={(e) => handleFormChange('budget', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEditModal(false)}
+              >
+                {t('common.buttons.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleEditSave}
+                disabled={!formData.name.trim() || !formData.clientName.trim() || !formData.address.trim()}
+              >
+                {t('common.buttons.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Embedded CSS for detail view grid adjustment */}
       <style jsx>{`

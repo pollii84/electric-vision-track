@@ -1,0 +1,184 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ──
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/config/superadmins)
+        && request.auth.uid in get(/databases/$(database)/documents/config/superadmins).data.admins;
+    }
+
+    function isTenantMember(tenantId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/tenants/$(tenantId)/members/$(request.auth.uid));
+    }
+
+    function getTenantRole(tenantId) {
+      return get(/databases/$(database)/documents/tenants/$(tenantId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function isTenantOwner(tenantId) {
+      return isTenantMember(tenantId) && getTenantRole(tenantId) == 'owner';
+    }
+
+    function isTenantManager(tenantId) {
+      return isTenantMember(tenantId) && getTenantRole(tenantId) in ['owner', 'manager'];
+    }
+
+    // ── Global Config ──
+    match /config/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Global Users Collection ──
+    match /users/{userId} {
+      // Users can read their own profile; superadmins can read all
+      allow read: if isOwner(userId) || isSuperAdmin();
+      // Users can only be created during registration (auth trigger)
+      allow create: if isOwner(userId);
+      // Users can update their own non-sensitive fields
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.tenantId == resource.data.tenantId;
+      allow delete: if false; // Never delete user docs directly
+    }
+
+    // ── Tenants ──
+    match /tenants/{tenantId} {
+      // Tenant info readable by members and superadmins
+      allow read: if isTenantMember(tenantId) || isSuperAdmin();
+      // Only the authenticated user creating their own tenant (registration)
+      allow create: if isAuthenticated() && request.auth.uid == tenantId;
+      // Only tenant owner or superadmin can update tenant info
+      allow update: if isTenantOwner(tenantId) || isSuperAdmin();
+      allow delete: if isSuperAdmin(); // Only superadmin can delete tenants
+
+      // ── Tenant Members ──
+      match /members/{memberId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        // Owner creating the first member (themselves) during registration
+        allow create: if (isOwner(memberId) && request.auth.uid == tenantId)
+          || isTenantOwner(tenantId)
+          || isSuperAdmin();
+        // Only tenant owner or superadmin can update members
+        allow update: if isTenantOwner(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      // ── All tenant-scoped business data ──
+      // Sites, Workers, Contacts, Quotes, Contracts, Invoices, Orders,
+      // Purchases, Stocks, Equipment, Tasks, Timesheets, Files, Companies
+
+      match /sites/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /workers/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /contacts/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /quotes/{docId} {
+        allow read: if isTenantManager(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      match /contracts/{docId} {
+        allow read: if isTenantManager(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      match /invoices/{docId} {
+        allow read: if isTenantManager(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      match /orders/{docId} {
+        allow read: if isTenantManager(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      match /purchases/{docId} {
+        allow read: if isTenantManager(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+
+      match /stocks/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /equipment/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /tasks/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /timesheets/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /files/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+      }
+
+      match /companies/{docId} {
+        allow read: if isTenantMember(tenantId) || isSuperAdmin();
+        allow create: if isTenantOwner(tenantId) || isSuperAdmin();
+        allow update: if isTenantOwner(tenantId) || isSuperAdmin();
+        allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
+      }
+    }
+  }
+}

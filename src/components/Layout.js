@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { useBusiness } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 
 const NAV_SECTIONS = [
@@ -53,6 +53,14 @@ const NAV_SECTIONS = [
       { key: 'companies', href: '/companies', icon: '🏢' },
     ],
   },
+  {
+    key: 'admin',
+    items: [
+      { key: 'adminDashboard', href: '/admin', icon: '🔑' },
+      { key: 'tenants', href: '/admin/tenants', icon: '🏢' },
+      { key: 'globalUsers', href: '/admin/users', icon: '👥' },
+    ],
+  },
 ];
 
 const BOTTOM_NAV = [
@@ -65,7 +73,7 @@ const BOTTOM_NAV = [
 export default function Layout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, isDemo, logout } = useAuth();
+  const { user, loading, isSuperAdmin, isDemo, logout } = useAuth();
   const { t } = useI18n();
   const { addToast } = useToast();
   const { companies, activeCompanyId, setActiveCompanyId } = useBusiness();
@@ -73,16 +81,29 @@ export default function Layout({ children }) {
 
   // Role-based route guard
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading) return;
+
+    const isPublicRoute = pathname === '/login' || pathname === '/marketing' || pathname === '/register';
+
+    if (!user) {
+      if (!isPublicRoute) {
+        router.push('/login');
+      }
+      return;
+    }
+
     const role = user.role || 'worker';
     
     const isOwnerOnly = pathname.startsWith('/companies');
     const isFinancial = pathname.startsWith('/quotes') || pathname.startsWith('/offers') || pathname.startsWith('/orders') || pathname.startsWith('/contracts') || pathname.startsWith('/invoices') || pathname.startsWith('/purchases');
+    const isAdminOnly = pathname.startsWith('/admin');
     
     let denied = false;
-    if (isOwnerOnly && role !== 'owner') {
+    if (isAdminOnly && !isSuperAdmin) {
       denied = true;
-    } else if (isFinancial && role !== 'owner' && role !== 'manager') {
+    } else if (isOwnerOnly && role !== 'owner' && !isSuperAdmin) {
+      denied = true;
+    } else if (isFinancial && role !== 'owner' && role !== 'manager' && !isSuperAdmin) {
       denied = true;
     }
     
@@ -90,13 +111,18 @@ export default function Layout({ children }) {
       addToast(t('auth2fa.unauthorized') || 'Access Denied. You do not have permission to view this resource.', 'error');
       router.push('/');
     }
-  }, [user, pathname, loading, router, addToast, t]);
+  }, [user, pathname, loading, isSuperAdmin, router, addToast, t]);
 
   const filteredNavSections = useMemo(() => {
     const role = user?.role || 'worker';
     
     return NAV_SECTIONS.map((section) => {
+      if (section.key === 'admin' && !isSuperAdmin) {
+        return null;
+      }
+      
       const items = section.items.filter((item) => {
+        if (isSuperAdmin) return true;
         if (role === 'owner') return true;
         
         // Manager can see everything except companies
@@ -120,8 +146,8 @@ export default function Layout({ children }) {
       });
       
       return { ...section, items };
-    }).filter((section) => section.items.length > 0);
-  }, [user]);
+    }).filter(Boolean).filter((section) => section.items.length > 0);
+  }, [user, isSuperAdmin]);
 
   if (pathname === '/login' || pathname === '/marketing' || pathname === '/register') {
     return <>{children}</>;

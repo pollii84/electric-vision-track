@@ -14,323 +14,223 @@ import { auth, googleProvider, db } from '@/lib/firebase';
 
 const AuthContext = createContext();
 
-// ── localStorage account store helpers ──
-const ACCOUNTS_KEY = 'ev-accounts';
-const SESSION_KEY = 'ev-session';
-
-// Pre-seeded test account
-const TEST_ACCOUNT = {
-  id: 'account-test-moga',
-  company: {
-    name: 'MOGA_PAUL_PFA',
-    cui: 'RO12345678',
-    euid: 'ROONRC.J12/1234/2024',
-  },
-  user: {
-    name: 'Paul Paul',
-    email: 'polimoga@gmail.com',
-    phone: '+40700000000',
-  },
-  role: 'owner',
-  password: 'test1234',
-  createdAt: new Date().toISOString(),
-};
-
-function getStoredAccounts() {
-  if (typeof window === 'undefined') return [];
+// ── Firestore helpers ──
+async function fetchUserProfile(uid) {
   try {
-    const raw = localStorage.getItem(ACCOUNTS_KEY);
-    const accounts = raw ? JSON.parse(raw) : [];
-    // Ensure test account is always present
-    const hasTest = accounts.some((a) => a.id === TEST_ACCOUNT.id);
-    if (!hasTest) {
-      accounts.push(TEST_ACCOUNT);
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      return userDoc.data();
     }
-    return accounts;
-  } catch {
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([TEST_ACCOUNT]));
-    return [TEST_ACCOUNT];
-  }
-}
-
-function saveAccounts(accounts) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-}
-
-function getSession() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+    return null;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
     return null;
   }
 }
 
-function saveSession(session) {
-  if (typeof window === 'undefined') return;
-  if (session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } else {
-    localStorage.removeItem(SESSION_KEY);
-  }
-}
-
-// ── Demo / Firebase mode detection ──
-function isDemoMode() {
+async function checkSuperAdmin(uid) {
   try {
-    return auth.app.options.apiKey === 'YOUR_API_KEY';
-  } catch {
-    return true;
-  }
-}
-
-async function fetchUserRole(uid) {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
-    if (userDoc.exists()) {
-      return userDoc.data().role || 'worker';
+    const configDoc = await getDoc(doc(db, 'config', 'superadmins'));
+    if (configDoc.exists()) {
+      const { admins = [] } = configDoc.data();
+      return admins.includes(uid);
     }
-    return 'worker';
+    return false;
   } catch (error) {
-    console.error('Error fetching user role:', error);
-    return 'worker';
+    console.error('Error checking superadmin:', error);
+    return false;
   }
 }
 
-async function ensureUserDocument(firebaseUser, role = 'worker') {
+async function ensureUserDocument(firebaseUser, { role = 'owner', tenantId = null, company = null, phone = '' } = {}) {
   try {
     const userRef = doc(db, 'users', firebaseUser.uid);
     const userDoc = await getDoc(userRef);
+    
     if (!userDoc.exists()) {
       await setDoc(userRef, {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName || '',
         role,
+        tenantId,
+        phone,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      return { role, tenantId };
     }
-    return userDoc.exists() ? userDoc.data().role : role;
+    
+    return {
+      role: userDoc.data().role || 'worker',
+      tenantId: userDoc.data().tenantId,
+    };
   } catch (error) {
     console.error('Error ensuring user document:', error);
-    return role;
+    return { role, tenantId };
   }
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [tenantId, setTenantId] = useState(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const isDemo = isDemoMode();
 
-  // Initialize auth state
+  // Initialize auth state listener
   useEffect(() => {
-    if (isDemo) {
-      // Demo mode: restore session from localStorage
-      const session = getSession();
-      if (session) {
-        setUser(session);
-      }
-      // Ensure test account exists in store
-      getStoredAccounts();
-      setLoading(false);
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const role = await fetchUserRole(firebaseUser.uid);
+        // Fetch user profile from Firestore
+        const profile = await fetchUserProfile(firebaseUser.uid);
+        const isAdmin = (await checkSuperAdmin(firebaseUser.uid)) || firebaseUser.email === 'polimoga@gmail.com';
+        
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
+          displayName: firebaseUser.displayName || profile?.displayName || '',
           photoURL: firebaseUser.photoURL,
-          role,
+          role: profile?.role || (firebaseUser.email === 'polimoga@gmail.com' ? 'owner' : 'worker'),
+          tenantId: profile?.tenantId || null,
+          phone: profile?.phone || '',
         });
+        setTenantId(profile?.tenantId || null);
+        setIsSuperAdmin(isAdmin);
       } else {
         setUser(null);
+        setTenantId(null);
+        setIsSuperAdmin(false);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [isDemo]);
+  }, []);
 
-  // ── Create Account (registration) ──
-  // Creates a new account with company details and user details.
-  // Automatically assigns "owner" role.
+  // ── Create Account (Registration) ──
   const createAccount = useCallback(async ({ company, user: userDetails, password }) => {
-    if (isDemo) {
-      const accounts = getStoredAccounts();
-
-      // Check if email already exists
-      const existing = accounts.find(
-        (a) => a.user.email.toLowerCase() === userDetails.email.toLowerCase()
-      );
-      if (existing) {
-        throw new Error('An account with this email already exists.');
-      }
-
-      const newAccount = {
-        id: `account-${Date.now()}`,
-        company: {
-          name: company.name,
-          cui: company.cui,
-          euid: company.euid,
-        },
-        user: {
-          name: userDetails.name,
-          email: userDetails.email,
-          phone: userDetails.phone || '',
-        },
-        role: 'owner', // Auto-assign owner
-        password: password,
-        createdAt: new Date().toISOString(),
-      };
-
-      accounts.push(newAccount);
-      saveAccounts(accounts);
-
-      // Auto-login after registration
-      const sessionUser = {
-        uid: newAccount.id,
-        email: newAccount.user.email,
-        displayName: newAccount.user.name,
-        role: 'owner',
-        company: newAccount.company,
-      };
-      setUser(sessionUser);
-      saveSession(sessionUser);
-      return sessionUser;
-    }
-
-    // Firebase mode
     setError(null);
     try {
+      // 1. Create Firebase Auth user
       const result = await createUserWithEmailAndPassword(auth, userDetails.email, password);
+      
+      // 2. Set display name
       if (userDetails.name) {
         await updateProfile(result.user, { displayName: userDetails.name });
       }
-      const role = await ensureUserDocument(result.user, 'owner');
+
+      // 3. Create tenant document
+      const tenantRef = doc(db, 'tenants', result.user.uid); // Use uid as tenant ID for owner
+      await setDoc(tenantRef, {
+        name: company.name,
+        cui: company.cui || '',
+        euid: company.euid || '',
+        ownerId: result.user.uid,
+        plan: 'small',
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 4. Create user document (maps user to tenant)
+      const newTenantId = result.user.uid;
+      await setDoc(doc(db, 'users', result.user.uid), {
+        uid: result.user.uid,
+        email: userDetails.email,
+        displayName: userDetails.name || '',
+        role: 'owner',
+        tenantId: newTenantId,
+        phone: userDetails.phone || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 5. Create member document within tenant
+      await setDoc(doc(db, 'tenants', newTenantId, 'members', result.user.uid), {
+        uid: result.user.uid,
+        email: userDetails.email,
+        displayName: userDetails.name || '',
+        role: 'owner',
+        phone: userDetails.phone || '',
+        invitedBy: null,
+        joinedAt: serverTimestamp(),
+      });
+
+      // 6. Seed default company data (divisions, workers, sites, contacts, stocks)
+      try {
+        const { seedTenantData } = await import('@/lib/seed');
+        await seedTenantData(newTenantId);
+      } catch (seedErr) {
+        console.error('Failed to seed default tenant data:', seedErr);
+        // Do not block registration if seeding fails
+      }
+
       const userData = {
         uid: result.user.uid,
         email: result.user.email,
         displayName: userDetails.name || result.user.displayName,
         photoURL: result.user.photoURL,
-        role,
-        company: {
-          name: company.name,
-          cui: company.cui,
-          euid: company.euid,
-        },
+        role: 'owner',
+        tenantId: newTenantId,
+        phone: userDetails.phone || '',
       };
+
       setUser(userData);
+      setTenantId(newTenantId);
       return userData;
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, [isDemo]);
+  }, []);
 
-  // ── Login with Email (no 2FA) ──
+  // ── Login with Email ──
   const loginWithEmail = useCallback(async (email, password) => {
-    if (isDemo) {
-      const accounts = getStoredAccounts();
-      const account = accounts.find(
-        (a) => a.user.email.toLowerCase() === email.toLowerCase()
-      );
-
-      if (!account) {
-        throw new Error('No account found with this email. Please create an account first.');
-      }
-
-      if (account.password !== password) {
-        throw new Error('Invalid password. Please try again.');
-      }
-
-      const sessionUser = {
-        uid: account.id,
-        email: account.user.email,
-        displayName: account.user.name,
-        role: account.role,
-        company: account.company,
-      };
-      setUser(sessionUser);
-      saveSession(sessionUser);
-      return sessionUser;
-    }
-
     setError(null);
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      const role = await fetchUserRole(result.user.uid);
-      const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        role,
-      };
-      setUser(userData);
-      return userData;
+      // Profile loading is handled by onAuthStateChanged
+      return result.user;
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, [isDemo]);
+  }, []);
 
+  // ── Login with Google ──
   const loginWithGoogle = useCallback(async () => {
-    if (isDemo) {
-      // In demo mode, create a generic demo owner session
-      const sessionUser = {
-        uid: 'demo-google',
-        email: 'owner@electricvision.eu',
-        displayName: 'Demo Owner',
-        role: 'owner',
-        company: { name: 'Demo Company', cui: '', euid: '' },
-      };
-      setUser(sessionUser);
-      saveSession(sessionUser);
-      return sessionUser;
-    }
-
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const role = await ensureUserDocument(result.user);
-      const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        role,
-      };
-      setUser(userData);
-      return userData;
+      
+      // Check if user already has a profile
+      const profile = await fetchUserProfile(result.user.uid);
+      
+      if (!profile) {
+        // First-time Google sign-in: create minimal user doc
+        // They'll need to complete registration or be invited to a tenant
+        await setDoc(doc(db, 'users', result.user.uid), {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName || '',
+          role: 'worker',
+          tenantId: null,
+          phone: '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      
+      return result.user;
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, [isDemo]);
+  }, []);
 
-  // Legacy signup — redirects to createAccount with minimal company info
-  const signUpWithEmail = useCallback(async (email, password, displayName) => {
-    return createAccount({
-      company: { name: 'My Company', cui: '', euid: '' },
-      user: { name: displayName || '', email, phone: '' },
-      password,
-    });
-  }, [createAccount]);
-
+  // ── Password Reset ──
   const resetPassword = useCallback(async (email) => {
-    if (isDemo) {
-      return; // No-op in demo mode
-    }
-
     setError(null);
     try {
       await sendPasswordResetEmail(auth, email);
@@ -338,24 +238,21 @@ export function AuthProvider({ children }) {
       setError(err.message);
       throw err;
     }
-  }, [isDemo]);
+  }, []);
 
+  // ── Logout ──
   const logout = useCallback(async () => {
-    if (isDemo) {
-      setUser(null);
-      saveSession(null);
-      return;
-    }
-
     setError(null);
     try {
       await signOut(auth);
       setUser(null);
+      setTenantId(null);
+      setIsSuperAdmin(false);
     } catch (err) {
       setError(err.message);
       throw err;
     }
-  }, [isDemo]);
+  }, []);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -363,11 +260,11 @@ export function AuthProvider({ children }) {
     user,
     loading,
     error,
-    isDemo,
+    tenantId,
+    isSuperAdmin,
     createAccount,
     loginWithGoogle,
     loginWithEmail,
-    signUpWithEmail,
     resetPassword,
     logout,
     clearError,

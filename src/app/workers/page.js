@@ -1,20 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_WORKERS = [
-  { id: '1', firstName: 'Andrei', lastName: 'Popescu', phone: '+40 741 234 567', email: 'andrei@electricvision.eu', experienceLevel: 'manager', isTeamLeader: true, hourlyRate: 85, isActive: true },
-  { id: '2', firstName: 'Maria', lastName: 'Ionescu', phone: '+40 742 345 678', email: 'maria@electricvision.eu', experienceLevel: 'seniorWithDegree', isTeamLeader: false, hourlyRate: 70, isActive: true },
-  { id: '3', firstName: 'Ion', lastName: 'Munteanu', phone: '+40 743 456 789', email: 'ion@electricvision.eu', experienceLevel: 'senior', isTeamLeader: true, hourlyRate: 65, isActive: true },
-  { id: '4', firstName: 'Elena', lastName: 'Dragomir', phone: '+40 744 567 890', email: 'elena@electricvision.eu', experienceLevel: 'intermediateWithDegree', isTeamLeader: false, hourlyRate: 55, isActive: true },
-  { id: '5', firstName: 'Vlad', lastName: 'Gheorghiu', phone: '+40 745 678 901', email: 'vlad@electricvision.eu', experienceLevel: 'intermediate', isTeamLeader: false, hourlyRate: 50, isActive: true },
-  { id: '6', firstName: 'Ana', lastName: 'Popa', phone: '+40 746 789 012', email: 'ana@electricvision.eu', experienceLevel: 'juniorWithDegree', isTeamLeader: false, hourlyRate: 40, isActive: true },
-  { id: '7', firstName: 'Mihai', lastName: 'Stan', phone: '+40 747 890 123', email: 'mihai@electricvision.eu', experienceLevel: 'junior', isTeamLeader: false, hourlyRate: 35, isActive: true },
-  { id: '8', firstName: 'Cristian', lastName: 'Barbu', phone: '+40 748 901 234', email: 'cristian@electricvision.eu', experienceLevel: 'associated', isTeamLeader: false, hourlyRate: 25, isActive: false },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 
 const EXPERIENCE_LEVELS = [
   'manager',
@@ -64,15 +55,27 @@ const INITIAL_FORM = {
 export default function WorkersPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [workers, setWorkers] = useState(DEMO_WORKERS);
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubscribe = onTenantCollectionSnapshot(tenantId, 'workers', (data) => {
+      setWorkers(data || []);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
+
   const filteredWorkers = useMemo(() => {
-    let result = workers;
+    let result = workers || [];
 
     if (selectedFilter !== 'all') {
       result = result.filter((w) => w.experienceLevel === selectedFilter);
@@ -81,11 +84,11 @@ export default function WorkersPage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        (w) =>
-          w.firstName.toLowerCase().includes(query) ||
-          w.lastName.toLowerCase().includes(query) ||
-          w.email.toLowerCase().includes(query) ||
-          w.phone.includes(query)
+          (w) =>
+              (w.firstName || '').toLowerCase().includes(query) ||
+              (w.lastName || '').toLowerCase().includes(query) ||
+              (w.email || '').toLowerCase().includes(query) ||
+              (w.phone || '').includes(query)
       );
     }
 
@@ -99,24 +102,47 @@ export default function WorkersPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    if (!formData.firstName.trim() || !formData.lastName.trim()) return;
+  const handleSave = async () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !tenantId) return;
 
-    const newWorker = {
+    const newWorkerData = {
       ...formData,
-      id: String(Date.now()),
       hourlyRate: Number(formData.hourlyRate) || 0,
     };
 
-    setWorkers((prev) => [...prev, newWorker]);
-    setFormData(INITIAL_FORM);
-    setShowModal(false);
+    try {
+      await addTenantDoc(tenantId, 'workers', newWorkerData);
+      setFormData(INITIAL_FORM);
+      setShowModal(false);
+    } catch (err) {
+      console.error('Failed to save worker:', err);
+    }
   };
 
   const handleCloseModal = () => {
     setFormData(INITIAL_FORM);
     setShowModal(false);
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

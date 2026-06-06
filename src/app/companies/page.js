@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Layout from '@/components/Layout';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { useBusiness } from '@/contexts/TenantContext';
 import { useI18n } from '@/lib/i18n';
 
 export default function CompaniesPage() {

@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, updateTenantDoc, addTenantDoc } from '@/lib/firestore';
 
 const INITIAL_STOCKS = [
-  { id: '1', name: 'Copper Wire NYM 3x1.5mm²', category: 'cabling', qty: 250, unit: 'm', threshold: 100, preferredSupplier: 'Elmark' },
-  { id: '2', name: 'Copper Wire NYM 3x2.5mm²', category: 'cabling', qty: 40, unit: 'm', threshold: 150, preferredSupplier: 'Electro Global' },
-  { id: '3', name: 'Circuit Breaker MCB 1P 16A', category: 'protection', qty: 15, unit: 'pcs', threshold: 30, preferredSupplier: 'Schneider Direct' },
-  { id: '4', name: 'Junction Box IP55', category: 'fixtures', qty: 85, unit: 'pcs', threshold: 50, preferredSupplier: 'Elmark' },
-  { id: '5', name: 'Insulating Tape (Black)', category: 'consolidated', qty: 8, unit: 'rolls', threshold: 20, preferredSupplier: 'Elmark' },
-  { id: '6', name: 'Main Distribution Cabinet', category: 'protection', qty: 3, unit: 'pcs', threshold: 2, preferredSupplier: 'Schneider Direct' },
+  { name: 'Copper Wire NYM 3x1.5mm²', category: 'cabling', qty: 250, unit: 'm', threshold: 100, preferredSupplier: 'Elmark' },
+  { name: 'Copper Wire NYM 3x2.5mm²', category: 'cabling', qty: 40, unit: 'm', threshold: 150, preferredSupplier: 'Electro Global' },
+  { name: 'Circuit Breaker MCB 1P 16A', category: 'protection', qty: 15, unit: 'pcs', threshold: 30, preferredSupplier: 'Schneider Direct' },
+  { name: 'Junction Box IP55', category: 'fixtures', qty: 85, unit: 'pcs', threshold: 50, preferredSupplier: 'Elmark' },
+  { name: 'Insulating Tape (Black)', category: 'consolidated', qty: 8, unit: 'rolls', threshold: 20, preferredSupplier: 'Elmark' },
+  { name: 'Main Distribution Cabinet', category: 'protection', qty: 3, unit: 'pcs', threshold: 2, preferredSupplier: 'Schneider Direct' },
 ];
 
 const CATEGORY_FILTERS = ['all', 'cabling', 'protection', 'fixtures', 'consolidated'];
@@ -23,8 +25,10 @@ export default function StocksPage() {
   const router = useRouter();
   const { t } = useI18n();
   const { addToast } = useToast();
+  const { tenantId } = useAuth();
 
   const [stocks, setStocks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   
@@ -33,28 +37,35 @@ export default function StocksPage() {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [replenishQty, setReplenishQty] = useState(100);
 
-  // Initialize stocks from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('ev-warehouse-stocks');
-    if (saved) {
-      try {
-        setStocks(JSON.parse(saved));
-      } catch (err) {
-        setStocks(INITIAL_STOCKS);
-      }
-    } else {
-      setStocks(INITIAL_STOCKS);
-      localStorage.setItem('ev-warehouse-stocks', JSON.stringify(INITIAL_STOCKS));
-    }
-  }, []);
+  const seedingRef = useRef(false);
 
-  const saveStocks = (newStocks) => {
-    setStocks(newStocks);
-    localStorage.setItem('ev-warehouse-stocks', JSON.stringify(newStocks));
-  };
+  // Initialize stocks from Firestore
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubscribe = onTenantCollectionSnapshot(tenantId, 'stocks', (data) => {
+      if ((!data || data.length === 0) && !seedingRef.current) {
+        seedingRef.current = true;
+        const seedData = async () => {
+          try {
+            for (const item of INITIAL_STOCKS) {
+              await addTenantDoc(tenantId, 'stocks', item);
+            }
+          } catch (err) {
+            console.error('Failed to seed stocks:', err);
+          }
+        };
+        seedData();
+      } else {
+        setStocks(data || []);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
 
   const filteredStocks = useMemo(() => {
-    let result = stocks;
+    let result = stocks || [];
 
     if (selectedCategory !== 'all') {
       result = result.filter((s) => s.category === selectedCategory);
@@ -64,18 +75,22 @@ export default function StocksPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (s) =>
-          s.name.toLowerCase().includes(query) ||
-          s.preferredSupplier.toLowerCase().includes(query)
+          (s.name || '').toLowerCase().includes(query) ||
+          (s.preferredSupplier || '').toLowerCase().includes(query)
       );
     }
 
     return result;
   }, [stocks, searchQuery, selectedCategory]);
 
-  const handleSupplierChange = (id, newSupplier) => {
-    const nextStocks = stocks.map((s) => (s.id === id ? { ...s, preferredSupplier: newSupplier } : s));
-    saveStocks(nextStocks);
-    addToast(`Preferred supplier updated to ${newSupplier}`, 'info');
+  const handleSupplierChange = async (id, newSupplier) => {
+    if (!tenantId) return;
+    try {
+      await updateTenantDoc(tenantId, 'stocks', id, { preferredSupplier: newSupplier });
+      addToast(`Preferred supplier updated to ${newSupplier}`, 'info');
+    } catch (err) {
+      console.error('Failed to update supplier:', err);
+    }
   };
 
   const handleOpenReplenish = (material) => {
@@ -86,16 +101,31 @@ export default function StocksPage() {
     setShowReplenishModal(true);
   };
 
-  const handleConfirmOrder = () => {
-    if (!selectedMaterial) return;
+  const handleConfirmOrder = async () => {
+    if (!selectedMaterial || !tenantId) return;
 
-    const nextStocks = stocks.map((s) =>
-      s.id === selectedMaterial.id ? { ...s, qty: s.qty + Number(replenishQty) } : s
-    );
-    saveStocks(nextStocks);
+    try {
+      await updateTenantDoc(tenantId, 'stocks', selectedMaterial.id, {
+        qty: selectedMaterial.qty + Number(replenishQty)
+      });
+      addToast(t('stocksAdditions.restockSuccess') || 'Stocks successfully replenished.', 'success');
+      setShowReplenishModal(false);
+    } catch (err) {
+      console.error('Failed to replenish stock:', err);
+    }
+  };
 
-    addToast(t('stocksAdditions.restockSuccess') || 'Stocks successfully replenished.', 'success');
-    setShowReplenishModal(false);
+  const handleBulkRestock = async () => {
+    if (!tenantId) return;
+    try {
+      const promises = lowStockItems.map((item) =>
+        updateTenantDoc(tenantId, 'stocks', item.id, { qty: item.threshold + 50 })
+      );
+      await Promise.all(promises);
+      addToast('All critical supplies replenished to safety level!', 'success');
+    } catch (err) {
+      console.error('Failed to bulk restock:', err);
+    }
   };
 
   const handleCompareBids = (materialName) => {
@@ -103,7 +133,29 @@ export default function StocksPage() {
   };
 
   // Restock event driven widget alert check
-  const lowStockItems = stocks.filter((s) => s.qty < s.threshold);
+  const lowStockItems = useMemo(() => {
+    return (stocks || []).filter((s) => s.qty < s.threshold);
+  }, [stocks]);
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -134,14 +186,7 @@ export default function StocksPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => {
-                // Bulk replenish mock
-                const nextStocks = stocks.map((s) =>
-                  s.qty < s.threshold ? { ...s, qty: s.threshold + 50 } : s
-                );
-                saveStocks(nextStocks);
-                addToast('All critical supplies replenished to safety level!', 'success');
-              }}
+              onClick={handleBulkRestock}
               className="btn btn-primary btn-sm"
               style={{ background: 'var(--clr-danger)', borderColor: 'var(--clr-danger)' }}
             >

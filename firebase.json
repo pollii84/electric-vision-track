@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "apphosting": {
     "backendId": "electric-vision-track",
     "rootDir": "/",
@@ -10,3 +13,4 @@
     ]
   }
 }
+

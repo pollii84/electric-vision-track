@@ -1,21 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_WORKERS = [
-  { id: '1', firstName: 'Andrei', lastName: 'Popescu', phone: '+40 741 234 567', email: 'andrei@electricvision.eu', experienceLevel: 'manager', isTeamLeader: true, hourlyRate: 85, isActive: true, hireDate: '2021-03-15' },
-  { id: '2', firstName: 'Maria', lastName: 'Ionescu', phone: '+40 742 345 678', email: 'maria@electricvision.eu', experienceLevel: 'seniorWithDegree', isTeamLeader: false, hourlyRate: 70, isActive: true, hireDate: '2021-06-01' },
-  { id: '3', firstName: 'Ion', lastName: 'Munteanu', phone: '+40 743 456 789', email: 'ion@electricvision.eu', experienceLevel: 'senior', isTeamLeader: true, hourlyRate: 65, isActive: true, hireDate: '2022-01-10' },
-  { id: '4', firstName: 'Elena', lastName: 'Dragomir', phone: '+40 744 567 890', email: 'elena@electricvision.eu', experienceLevel: 'intermediateWithDegree', isTeamLeader: false, hourlyRate: 55, isActive: true, hireDate: '2022-09-01' },
-  { id: '5', firstName: 'Vlad', lastName: 'Gheorghiu', phone: '+40 745 678 901', email: 'vlad@electricvision.eu', experienceLevel: 'intermediate', isTeamLeader: false, hourlyRate: 50, isActive: true, hireDate: '2023-02-20' },
-  { id: '6', firstName: 'Ana', lastName: 'Popa', phone: '+40 746 789 012', email: 'ana@electricvision.eu', experienceLevel: 'juniorWithDegree', isTeamLeader: false, hourlyRate: 40, isActive: true, hireDate: '2023-08-15' },
-  { id: '7', firstName: 'Mihai', lastName: 'Stan', phone: '+40 747 890 123', email: 'mihai@electricvision.eu', experienceLevel: 'junior', isTeamLeader: false, hourlyRate: 35, isActive: true, hireDate: '2024-01-05' },
-  { id: '8', firstName: 'Cristian', lastName: 'Barbu', phone: '+40 748 901 234', email: 'cristian@electricvision.eu', experienceLevel: 'associated', isTeamLeader: false, hourlyRate: 25, isActive: false, hireDate: '2024-06-01' },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc } from '@/lib/firestore';
 
 const DEMO_ASSIGNED_SITES = [
   { id: 's1', name: 'Bloc A7 — Residential Complex', role: 'Electrician', since: '2026-01-15' },
@@ -29,6 +20,17 @@ const DEMO_TIME_LOGS = [
   { id: 't3', date: '2026-05-28', site: 'Office Tower B3 — Wiring', hours: 8, description: 'Conduit bending and installation' },
   { id: 't4', date: '2026-05-27', site: 'Bloc A7 — Residential Complex', hours: 6, description: 'Switchboard wiring — Floor 3' },
   { id: 't5', date: '2026-05-26', site: 'Mall Promenada — Commercial Fit-out', hours: 8.5, description: 'Emergency lighting test run' },
+];
+
+const EXPERIENCE_LEVELS = [
+  'manager',
+  'senior',
+  'seniorWithDegree',
+  'intermediate',
+  'intermediateWithDegree',
+  'junior',
+  'juniorWithDegree',
+  'associated',
 ];
 
 const BADGE_COLORS = {
@@ -46,11 +48,94 @@ export default function WorkerDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const worker = useMemo(
-    () => DEMO_WORKERS.find((w) => w.id === params.id),
-    [params.id]
-  );
+  const [worker, setWorker] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    experienceLevel: 'junior',
+    hourlyRate: '',
+    hireDate: '',
+    isTeamLeader: false,
+    isActive: true,
+  });
+
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    setLoading(true);
+    const unsubscribe = onTenantDocSnapshot(tenantId, 'workers', params.id, (data) => {
+      setWorker(data);
+      if (data) {
+        setFormData({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          experienceLevel: data.experienceLevel || 'junior',
+          hourlyRate: data.hourlyRate !== undefined ? data.hourlyRate : '',
+          hireDate: data.hireDate || '',
+          isTeamLeader: data.isTeamLeader || false,
+          isActive: data.isActive !== undefined ? data.isActive : true,
+        });
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  const handleFormChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSave = async () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !tenantId || !params.id) return;
+    try {
+      await updateTenantDoc(tenantId, 'workers', params.id, {
+        ...formData,
+        hourlyRate: Number(formData.hourlyRate) || 0,
+      });
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Failed to update worker:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tenantId || !params.id) return;
+    if (confirm(t('workers.confirmDelete') || 'Are you sure you want to delete this worker?')) {
+      try {
+        await deleteTenantDoc(tenantId, 'workers', params.id);
+        router.push('/workers');
+      } catch (err) {
+        console.error('Failed to delete worker:', err);
+      }
+    }
+  };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   if (!worker) {
     return (
@@ -67,10 +152,10 @@ export default function WorkerDetailPage() {
     );
   }
 
-  const initials = `${worker.firstName[0]}${worker.lastName[0]}`.toUpperCase();
+  const initials = `${worker.firstName?.[0] || ''}${worker.lastName?.[0] || ''}`.toUpperCase();
   const demoHours = 168;
   const demoSitesCount = 3;
-  const demoEarned = worker.hourlyRate * demoHours;
+  const demoEarned = (worker.hourlyRate || 0) * demoHours;
 
   return (
     <Layout>
@@ -87,10 +172,18 @@ export default function WorkerDetailPage() {
           <h1>{worker.firstName} {worker.lastName}</h1>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-secondary" aria-label={t('common.buttons.edit')}>
+          <button
+            className="btn btn-secondary"
+            aria-label={t('common.buttons.edit')}
+            onClick={() => setShowEditModal(true)}
+          >
             ✏️ {t('common.buttons.edit')}
           </button>
-          <button className="btn btn-danger" aria-label={t('workers.deleteWorker')}>
+          <button
+            className="btn btn-danger"
+            aria-label={t('workers.deleteWorker')}
+            onClick={handleDelete}
+          >
             🗑️ {t('common.buttons.delete')}
           </button>
         </div>
@@ -226,7 +319,7 @@ export default function WorkerDetailPage() {
       </div>
 
       {/* Recent Time Logs Table */}
-      <div className="glass-card">
+      <div className="glass-card" style={{ marginBottom: 'var(--sp-lg)' }}>
         <div className="card-header">
           <h3 className="card-title">📋 {t('workers.detail.recentTimeLogs')}</h3>
         </div>
@@ -257,6 +350,177 @@ export default function WorkerDetailPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Worker Modal */}
+      {showEditModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowEditModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-worker-title"
+        >
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="edit-worker-title">
+                {t('workers.editWorker') || 'Edit Worker'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowEditModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* First Name + Last Name */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-firstName">
+                    {t('workers.fields.firstName')} *
+                  </label>
+                  <input
+                    id="edit-worker-firstName"
+                    className="form-input"
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => handleFormChange('firstName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-lastName">
+                    {t('workers.fields.lastName')} *
+                  </label>
+                  <input
+                    id="edit-worker-lastName"
+                    className="form-input"
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => handleFormChange('lastName', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone + Email */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-phone">
+                    {t('workers.fields.phone')}
+                  </label>
+                  <input
+                    id="edit-worker-phone"
+                    className="form-input"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleFormChange('phone', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-email">
+                    {t('workers.fields.email')}
+                  </label>
+                  <input
+                    id="edit-worker-email"
+                    className="form-input"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleFormChange('email', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Experience Level */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-worker-experienceLevel">
+                  {t('workers.fields.experienceLevel')}
+                </label>
+                <select
+                  id="edit-worker-experienceLevel"
+                  className="form-select"
+                  value={formData.experienceLevel}
+                  onChange={(e) => handleFormChange('experienceLevel', e.target.value)}
+                >
+                  {EXPERIENCE_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {t(`workers.experienceLevels.${level}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Hourly Rate + Hire Date */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-hourlyRate">
+                    {t('workers.fields.hourlyRate')} (RON)
+                  </label>
+                  <input
+                    id="edit-worker-hourlyRate"
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.hourlyRate}
+                    onChange={(e) => handleFormChange('hourlyRate', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-worker-hireDate">
+                    {t('workers.fields.hireDate')}
+                  </label>
+                  <input
+                    id="edit-worker-hireDate"
+                    className="form-input"
+                    type="date"
+                    value={formData.hireDate}
+                    onChange={(e) => handleFormChange('hireDate', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Team Leader + Active checkboxes */}
+              <div className="form-row" style={{ marginTop: 'var(--sp-sm)' }}>
+                <label className="form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={formData.isTeamLeader}
+                    onChange={(e) => handleFormChange('isTeamLeader', e.target.checked)}
+                  />
+                  {t('workers.fields.isTeamLeader')}
+                </label>
+                <label className="form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => handleFormChange('isActive', e.target.checked)}
+                  />
+                  {t('workers.fields.activeStatus')}
+                </label>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEditModal(false)}
+              >
+                {t('common.buttons.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleEditSave}
+                disabled={!formData.firstName.trim() || !formData.lastName.trim()}
+              >
+                {t('common.buttons.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

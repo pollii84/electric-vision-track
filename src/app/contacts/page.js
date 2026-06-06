@@ -1,17 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_CONTACTS = [
-  { id: '1', type: 'client', firstName: 'Popescu', lastName: 'Ion', company: '', phone: '+40 741 111 222', email: 'popescu.ion@gmail.com', address: 'Str. Eroilor 15, Cluj-Napoca', workTypes: ['Rezidențial'] },
-  { id: '2', type: 'client', firstName: 'Marin', lastName: 'Alexandru', company: '', phone: '+40 742 222 333', email: 'marin.alex@yahoo.com', address: 'Str. Libertății 8, Borșa', workTypes: ['Rezidențial'] },
-  { id: '3', type: 'supplier', firstName: '', lastName: '', company: 'Sigma Development', phone: '+40 264 111 222', email: 'office@sigma.ro', address: 'Bd. 21 Decembrie 77, Cluj', workTypes: ['Birouri', 'Comercial'] },
-  { id: '4', type: 'supplier', firstName: '', lastName: '', company: 'SC Turism SA', phone: '+40 264 333 444', email: 'achizitii@turism-sa.ro', address: 'Str. Republicii 120, Cluj', workTypes: ['Hospitality'] },
-  { id: '5', type: 'supplier', firstName: '', lastName: '', company: 'Elmark Romania', phone: '+40 264 555 666', email: 'comenzi@elmark.ro', address: 'Zona Industriala, Turda', workTypes: ['Furnizor materiale'] },
-  { id: '6', type: 'subcontractor', firstName: 'Vasile', lastName: 'Crăciun', company: 'Clima Expert SRL', phone: '+40 743 444 555', email: 'vasile@climaexpert.ro', address: 'Str. Fabricii 12, Cluj', workTypes: ['HVAC', 'Climatizare'] },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 
 const CONTACT_TYPES = ['all', 'client', 'supplier', 'employee', 'subcontractor'];
 
@@ -36,15 +29,27 @@ const INITIAL_FORM = {
 
 export default function ContactsPage() {
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [contacts, setContacts] = useState(DEMO_CONTACTS);
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubscribe = onTenantCollectionSnapshot(tenantId, 'contacts', (data) => {
+      setContacts(data || []);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
+
   const filteredContacts = useMemo(() => {
-    let result = contacts;
+    let result = contacts || [];
 
     if (selectedFilter !== 'all') {
       result = result.filter((c) => c.type === selectedFilter);
@@ -54,11 +59,11 @@ export default function ContactsPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (c) =>
-          c.firstName.toLowerCase().includes(query) ||
-          c.lastName.toLowerCase().includes(query) ||
-          c.company.toLowerCase().includes(query) ||
-          c.email.toLowerCase().includes(query) ||
-          c.phone.includes(query)
+          (c.firstName || '').toLowerCase().includes(query) ||
+          (c.lastName || '').toLowerCase().includes(query) ||
+          (c.company || '').toLowerCase().includes(query) ||
+          (c.email || '').toLowerCase().includes(query) ||
+          (c.phone || '').includes(query)
       );
     }
 
@@ -69,19 +74,23 @@ export default function ContactsPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const isCompanyOnly = formData.type === 'supplier' && formData.company.trim();
     if (!isCompanyOnly && !formData.firstName.trim() && !formData.lastName.trim()) return;
+    if (!tenantId) return;
 
     const newContact = {
       ...formData,
-      id: String(Date.now()),
       workTypes: formData.workTypes ? formData.workTypes.split(',').map(s => s.trim()) : [],
     };
 
-    setContacts((prev) => [...prev, newContact]);
-    setFormData(INITIAL_FORM);
-    setShowModal(false);
+    try {
+      await addTenantDoc(tenantId, 'contacts', newContact);
+      setFormData(INITIAL_FORM);
+      setShowModal(false);
+    } catch (err) {
+      console.error('Failed to save contact:', err);
+    }
   };
 
   const handleCloseModal = () => {
@@ -96,6 +105,26 @@ export default function ContactsPage() {
     const name = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
     return contact.company ? `${name} (${contact.company})` : name;
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

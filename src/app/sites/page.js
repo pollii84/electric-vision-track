@@ -1,20 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', address: 'Str. Eroilor 15, Cluj-Napoca', clientName: 'Popescu Ion', status: 'in_progress', progress: 65, budget: 125000, startDate: '2026-03-15', workers: ['Andrei P.', 'Maria I.', 'Ion M.', 'Vlad G.'] },
-  { id: '2', name: 'Bloc Florești - Et. 3', address: 'Str. Avram Iancu 42, Florești', clientName: 'SC Residential SRL', status: 'in_progress', progress: 40, budget: 85000, startDate: '2026-04-01', workers: ['Elena D.', 'Ana P.', 'Mihai S.'] },
-  { id: '3', name: 'Birouri Sigma Center', address: 'Bd. 21 Decembrie 77, Cluj-Napoca', clientName: 'Sigma Development', status: 'planned', progress: 0, budget: 210000, startDate: '2026-07-01', workers: [] },
-  { id: '4', name: 'Casa Marin - Borșa', address: 'Str. Libertății 8, Borșa', clientName: 'Marin Alexandru', status: 'completed', progress: 100, budget: 45000, startDate: '2026-01-10', workers: [] },
-  { id: '5', name: 'Hotel Panoramic Renovare', address: 'Str. Republicii 120, Cluj-Napoca', clientName: 'SC Turism SA', status: 'in_progress', progress: 25, budget: 350000, startDate: '2026-05-01', workers: ['Andrei P.', 'Maria I.', 'Ion M.', 'Elena D.', 'Vlad G.', 'Ana P.', 'Mihai S.', 'Cristian B.'] },
-  { id: '6', name: 'Depozit Logistic Turda', address: 'Zona Industrială, Turda', clientName: 'SC Logistica SRL', status: 'on_hold', progress: 15, budget: 180000, startDate: '2026-02-20', workers: ['Ion M.'] },
-  { id: '7', name: 'Restaurant Bella Vista', address: 'Str. Napoca 5, Cluj-Napoca', clientName: 'Bella Vista SRL', status: 'planned', progress: 0, budget: 95000, startDate: '2026-08-15', workers: [] },
-  { id: '8', name: 'Clădire Rezidențială Dej', address: 'Str. 1 Mai 33, Dej', clientName: 'SC Imobiliare SA', status: 'in_progress', progress: 55, budget: 420000, startDate: '2026-04-10', workers: ['Andrei P.', 'Elena D.', 'Mihai S.', 'Ana P.', 'Vlad G.'] },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 
 const STATUS_FILTERS = ['all', 'planned', 'in_progress', 'on_hold', 'completed'];
 
@@ -50,15 +41,27 @@ const INITIAL_FORM = {
 export default function SitesPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [sites, setSites] = useState(DEMO_SITES);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubscribe = onTenantCollectionSnapshot(tenantId, 'sites', (data) => {
+      setSites(data || []);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
+
   const filteredSites = useMemo(() => {
-    let result = sites;
+    let result = sites || [];
 
     if (selectedFilter !== 'all') {
       result = result.filter((s) => s.status === selectedFilter);
@@ -68,9 +71,9 @@ export default function SitesPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (s) =>
-          s.name.toLowerCase().includes(query) ||
-          s.clientName.toLowerCase().includes(query) ||
-          s.address.toLowerCase().includes(query)
+          (s.name || '').toLowerCase().includes(query) ||
+          (s.clientName || '').toLowerCase().includes(query) ||
+          (s.address || '').toLowerCase().includes(query)
       );
     }
 
@@ -91,26 +94,49 @@ export default function SitesPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    if (!formData.name.trim() || !formData.clientName.trim() || !formData.address.trim()) return;
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.clientName.trim() || !formData.address.trim() || !tenantId) return;
 
     const newSite = {
       ...formData,
-      id: String(Date.now()),
       progress: 0,
       budget: Number(formData.budget) || 0,
       workers: [],
     };
 
-    setSites((prev) => [...prev, newSite]);
-    setFormData(INITIAL_FORM);
-    setShowModal(false);
+    try {
+      await addTenantDoc(tenantId, 'sites', newSite);
+      setFormData(INITIAL_FORM);
+      setShowModal(false);
+    } catch (err) {
+      console.error('Failed to save site:', err);
+    }
   };
 
   const handleCloseModal = () => {
     setFormData(INITIAL_FORM);
     setShowModal(false);
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -264,7 +290,7 @@ export default function SitesPage() {
               }}>
                 {/* Workers Avatar Group */}
                 <div className="avatar-group" style={{ display: 'flex', alignItems: 'center' }}>
-                  {site.workers.slice(0, 4).map((workerName, i) => (
+                  {(site.workers || []).slice(0, 4).map((workerName, i) => (
                     <div
                       key={workerName}
                       className="avatar avatar-sm"
@@ -278,7 +304,7 @@ export default function SitesPage() {
                       {getInitials(workerName)}
                     </div>
                   ))}
-                  {site.workers.length > 4 && (
+                  {(site.workers || []).length > 4 && (
                     <div
                       className="avatar avatar-sm font-semibold"
                       style={{
@@ -289,10 +315,10 @@ export default function SitesPage() {
                         fontSize: 'var(--fs-xs)',
                       }}
                     >
-                      +{site.workers.length - 4}
+                      +{(site.workers || []).length - 4}
                     </div>
                   )}
-                  {site.workers.length === 0 && (
+                  {(site.workers || []).length === 0 && (
                     <span className="text-muted text-xs">{t('sites.fields.assignedWorkers')}: 0</span>
                   )}
                 </div>
