@@ -38,14 +38,14 @@ export async function seedTenantData(tenantId) {
 
     // 2. Seed workers
     const defaultWorkers = [
-      { firstName: 'Andrei', lastName: 'Popescu', phone: '+40 741 234 567', email: 'andrei@electricvision.eu', experienceLevel: 'manager', isTeamLeader: true, hourlyRate: 85, isActive: true },
-      { firstName: 'Maria', lastName: 'Ionescu', phone: '+40 742 345 678', email: 'maria@electricvision.eu', experienceLevel: 'seniorWithDegree', isTeamLeader: false, hourlyRate: 70, isActive: true },
-      { firstName: 'Ion', lastName: 'Munteanu', phone: '+40 743 456 789', email: 'ion@electricvision.eu', experienceLevel: 'senior', isTeamLeader: true, hourlyRate: 65, isActive: true },
-      { firstName: 'Elena', lastName: 'Dragomir', phone: '+40 744 567 890', email: 'elena@electricvision.eu', experienceLevel: 'intermediateWithDegree', isTeamLeader: false, hourlyRate: 55, isActive: true },
-      { firstName: 'Vlad', lastName: 'Gheorghiu', phone: '+40 745 678 901', email: 'vlad@electricvision.eu', experienceLevel: 'intermediate', isTeamLeader: false, hourlyRate: 50, isActive: true },
-      { firstName: 'Ana', lastName: 'Popa', phone: '+40 746 789 012', email: 'ana@electricvision.eu', experienceLevel: 'juniorWithDegree', isTeamLeader: false, hourlyRate: 40, isActive: true },
-      { firstName: 'Mihai', lastName: 'Stan', phone: '+40 747 890 123', email: 'mihai@electricvision.eu', experienceLevel: 'junior', isTeamLeader: false, hourlyRate: 35, isActive: true },
-      { firstName: 'Cristian', lastName: 'Barbu', phone: '+40 748 901 234', email: 'cristian@electricvision.eu', experienceLevel: 'associated', isTeamLeader: false, hourlyRate: 25, isActive: false }
+      { firstName: 'Andrei', lastName: 'Popescu', phone: '+40 741 234 567', email: 'andrei@dimensionvisiontrack.com', experienceLevel: 'manager', isTeamLeader: true, hourlyRate: 85, isActive: true },
+      { firstName: 'Maria', lastName: 'Ionescu', phone: '+40 742 345 678', email: 'maria@dimensionvisiontrack.com', experienceLevel: 'seniorWithDegree', isTeamLeader: false, hourlyRate: 70, isActive: true },
+      { firstName: 'Ion', lastName: 'Munteanu', phone: '+40 743 456 789', email: 'ion@dimensionvisiontrack.com', experienceLevel: 'senior', isTeamLeader: true, hourlyRate: 65, isActive: true },
+      { firstName: 'Elena', lastName: 'Dragomir', phone: '+40 744 567 890', email: 'elena@dimensionvisiontrack.com', experienceLevel: 'intermediateWithDegree', isTeamLeader: false, hourlyRate: 55, isActive: true },
+      { firstName: 'Vlad', lastName: 'Gheorghiu', phone: '+40 745 678 901', email: 'vlad@dimensionvisiontrack.com', experienceLevel: 'intermediate', isTeamLeader: false, hourlyRate: 50, isActive: true },
+      { firstName: 'Ana', lastName: 'Popa', phone: '+40 746 789 012', email: 'ana@dimensionvisiontrack.com', experienceLevel: 'juniorWithDegree', isTeamLeader: false, hourlyRate: 40, isActive: true },
+      { firstName: 'Mihai', lastName: 'Stan', phone: '+40 747 890 123', email: 'mihai@dimensionvisiontrack.com', experienceLevel: 'junior', isTeamLeader: false, hourlyRate: 35, isActive: true },
+      { firstName: 'Cristian', lastName: 'Barbu', phone: '+40 748 901 234', email: 'cristian@dimensionvisiontrack.com', experienceLevel: 'associated', isTeamLeader: false, hourlyRate: 25, isActive: false }
     ];
 
     for (let i = 0; i < defaultWorkers.length; i++) {

@@ -120,7 +120,7 @@ export default function SettingsPage() {
                 id="settings-email"
                 className="form-input"
                 type="email"
-                value={user?.email || 'admin@electricvision.eu'}
+                value={user?.email || 'admin@dimensionvisiontrack.com'}
                 disabled
                 style={{ background: 'var(--clr-bg-deep)', cursor: 'not-allowed', opacity: 0.7 }}
               />
@@ -266,12 +266,12 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)', borderTop: '1px solid var(--clr-border)', paddingTop: 'var(--sp-sm)', marginTop: 'var(--sp-xs)' }}>
               <span className="text-muted">Website:</span>
               <a
-                href="https://electricvision.eu/"
+                href="https://www.dimensionvisiontrack.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: 'var(--clr-primary)', fontWeight: 600, textDecoration: 'none' }}
               >
-                electricvision.eu
+                dimensionvisiontrack.com
               </a>
             </div>
           </div>

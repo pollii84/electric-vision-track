@@ -230,7 +230,7 @@ export default function QuoteDetailPage() {
             <h4 style={{ margin: '0 0 6px 0', color: '#333' }}>ISSUED BY:</h4>
             <strong>ElectricVision SRL</strong><br />
             Str. Bună Ziua 45, Cluj-Napoca<br />
-            office@electricvision.eu<br />
+            office@dimensionvisiontrack.com<br />
             +40 264 555 111
           </div>
           <div>

@@ -6,17 +6,17 @@ runConfig:
   maxInstances: 10
   concurrency: 80
 
-# Environment variables
+# Environment variables — real Firebase project credentials
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "YOUR_API_KEY"
+    value: "AIzaSyBqy_MjttqHqghKhjf-LQt30b6ceFOaR4c"
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: "YOUR_AUTH_DOMAIN"
+    value: "electricvisiontrack.firebaseapp.com"
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: "YOUR_PROJECT_ID"
+    value: "electricvisiontrack"
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: "YOUR_STORAGE_BUCKET"
+    value: "electricvisiontrack.firebasestorage.app"
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "YOUR_MESSAGING_SENDER_ID"
+    value: "553511097361"
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: "YOUR_APP_ID"
+    value: "1:553511097361:web:a9f30003b8f9274dcf8db0"
