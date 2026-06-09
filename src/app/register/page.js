@@ -154,18 +154,62 @@ function RegisterForm() {
     }
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     clearMessages();
 
-    if (!companyName.trim()) {
-      setError(t('register.companyNameRequired'));
-      return;
-    }
-    if (!companyCui.trim()) {
+    const cuiVal = companyCui.trim();
+    if (!cuiVal) {
       setError(t('register.cuiRequired') || 'Company CUI is required');
       return;
     }
-    if (!companyEuid.trim()) {
+
+    // If company name or EUID are empty, trigger lookup synchronously before transitioning
+    let currentName = companyName.trim();
+    let currentEuid = companyEuid.trim();
+
+    if (!currentName || !currentEuid) {
+      const cleaned = cuiVal.toUpperCase().replace(/^RO/, '').trim();
+      if (cleaned && cleaned.length >= 2 && /^\d+$/.test(cleaned)) {
+        setIsLookingUpCui(true);
+        try {
+          const res = await fetch(`/api/lookup-cui?cui=${cleaned}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.name) {
+              setCompanyName(data.name);
+              currentName = data.name;
+            }
+            if (data.euid) {
+              setCompanyEuid(data.euid);
+              currentEuid = data.euid;
+            }
+            // Save extra details in the background
+            setCompanyExtraData({
+              address: data.address || '',
+              caen: data.caen || '',
+              registrationDate: data.registrationDate || '',
+              legalForm: data.legalForm || '',
+            });
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            setError(errData.error || 'Compania nu a fost găsită. Vă rugăm să completați manual.');
+            setIsLookingUpCui(false);
+            return;
+          }
+        } catch (err) {
+          console.error('CUI lookup error in next step:', err);
+        } finally {
+          setIsLookingUpCui(false);
+        }
+      }
+    }
+
+    // Final checks
+    if (!currentName) {
+      setError(t('register.companyNameRequired'));
+      return;
+    }
+    if (!currentEuid) {
       setError(t('register.euidRequired') || 'Company EUID is required');
       return;
     }
@@ -580,8 +624,27 @@ function RegisterForm() {
               type="button"
               className="btn btn-primary btn-lg"
               onClick={handleNextStep}
+              disabled={isLookingUpCui}
               style={{ width: '100%' }}
             >
+              {isLookingUpCui ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 20 20"
+                  style={{ animation: 'spin 1s linear infinite', marginRight: 8, display: 'inline-block', verticalAlign: 'middle' }}
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="10" cy="10" r="7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeDasharray="32"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : null}
               <span>{t('register.nextStep') || 'Continue to User Details'}</span>
               <span aria-hidden="true" style={{ fontSize: 18, marginLeft: 8 }}>→</span>
             </button>
