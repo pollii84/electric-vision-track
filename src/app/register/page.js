@@ -289,7 +289,7 @@ function RegisterForm() {
         {/* Logo & Header */}
         <div className="login-header">
           <div className="login-logo">
-            <Link href="/marketing">
+            <a href="https://dimensionvisiontrack.com">
               <img
                 src="/images/logo_header.png"
                 alt="ElectricVision"
@@ -297,7 +297,7 @@ function RegisterForm() {
                 height={100}
                 style={{ objectFit: 'contain', cursor: 'pointer' }}
               />
-            </Link>
+            </a>
           </div>
           <h1 className="login-title">{t('register.title')}</h1>
           <p className="login-subtitle">{t('register.subtitle')}</p>
@@ -811,7 +811,7 @@ function RegisterForm() {
             <button
               type="button"
               id="reg-back-to-marketing"
-              onClick={() => router.push('/marketing')}
+              onClick={() => window.location.href = 'https://dimensionvisiontrack.com'}
               style={{
                 color: 'var(--clr-primary)',
                 fontWeight: 600,

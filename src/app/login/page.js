@@ -185,7 +185,7 @@ export default function LoginPage() {
         {/* Logo & Header */}
         <div className="login-header">
           <div className="login-logo">
-            <Link href="/marketing">
+            <a href="https://dimensionvisiontrack.com">
               <img
                 src="/images/logo_header.png"
                 alt="ElectricVision"
@@ -193,7 +193,7 @@ export default function LoginPage() {
                 height={125}
                 style={{ objectFit: 'contain', cursor: 'pointer' }}
               />
-            </Link>
+            </a>
           </div>
           <h1 className="login-title">ElectricVision Track</h1>
           <p className="login-subtitle">

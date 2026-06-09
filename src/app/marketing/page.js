@@ -152,7 +152,7 @@ export default function MarketingPage() {
         >
           {/* Logo */}
           <Link
-            href="/marketing"
+            href="/"
             id="nav-logo"
             style={{
               display: 'flex',
@@ -247,12 +247,12 @@ export default function MarketingPage() {
               </button>
             </div>
 
-            <Link href="/login" id="nav-login" className="btn btn-ghost btn-sm">
+            <a href="https://app.dimensionvisiontrack.com/login" id="nav-login" className="btn btn-ghost btn-sm">
               {t('marketing.nav.login')}
-            </Link>
-            <Link href="/register" id="nav-register" className="btn btn-primary btn-sm">
+            </a>
+            <a href="https://app.dimensionvisiontrack.com/register" id="nav-register" className="btn btn-primary btn-sm">
               {t('marketing.nav.authentication') || 'Authentication'}
-            </Link>
+            </a>
           </div>
         </nav>
       </header>
@@ -380,10 +380,10 @@ export default function MarketingPage() {
               animation: 'heroFadeIn 0.8s ease-out 0.4s both',
             }}
           >
-            <Link href="/register" id="hero-cta-register" className="btn btn-primary btn-lg">
+            <a href="https://app.dimensionvisiontrack.com/register" id="hero-cta-register" className="btn btn-primary btn-lg">
               {t('marketing.nav.authentication') || 'Authentication'}
               <span aria-hidden="true" style={{ fontSize: 18 }}>→</span>
-            </Link>
+            </a>
             <button id="hero-cta-demo" className="btn btn-secondary btn-lg">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polygon points="5 3 19 12 5 21 5 3" />
@@ -1034,23 +1034,23 @@ export default function MarketingPage() {
 
                   {/* CTA */}
                   {pkg === 'enterprise' ? (
-                    <Link
-                      href={`/register?package=${pkg}`}
+                    <a
+                      href={`https://app.dimensionvisiontrack.com/register?package=${pkg}`}
                       id={`pricing-cta-${pkg}`}
                       className="btn btn-secondary btn-lg"
                       style={{ width: '100%', justifyContent: 'center' }}
                     >
                       {t('marketing.pricing.contactSales')}
-                    </Link>
+                    </a>
                   ) : (
-                    <Link
-                      href={`/register?package=${pkg}`}
+                    <a
+                      href={`https://app.dimensionvisiontrack.com/register?package=${pkg}`}
                       id={`pricing-cta-${pkg}`}
                       className={`btn ${isPopular ? 'btn-primary' : 'btn-secondary'} btn-lg`}
                       style={{ width: '100%', justifyContent: 'center' }}
                     >
                       {t('marketing.pricing.getStarted')}
-                    </Link>
+                    </a>
                   )}
                 </div>
               </div>
