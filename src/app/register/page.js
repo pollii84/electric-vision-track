@@ -8,6 +8,44 @@ import { useI18n } from '@/lib/i18n';
 
 const PACKAGES = ['small', 'medium', 'large', 'enterprise'];
 
+// Password toggle button component (declared outside render to avoid recreation)
+const PasswordToggle = ({ show, onToggle, id, hideLabel, showLabel }) => (
+  <button
+    type="button"
+    id={id}
+    onClick={onToggle}
+    aria-label={show ? hideLabel : showLabel}
+    style={{
+      position: 'absolute',
+      right: 8,
+      top: '50%',
+      transform: 'translateY(-50%)',
+      padding: 6,
+      color: 'var(--clr-text-muted)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+    }}
+  >
+    {show ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )}
+  </button>
+);
+
 function RegisterForm() {
   const { user, loading, createAccount, loginWithGoogle } = useAuth();
   const { t, locale, setLocale } = useI18n();
@@ -18,6 +56,7 @@ function RegisterForm() {
   const [companyName, setCompanyName] = useState('');
   const [companyCui, setCompanyCui] = useState('');
   const [companyEuid, setCompanyEuid] = useState('');
+  const [isLookingUpCui, setIsLookingUpCui] = useState(false);
 
   // User fields
   const [userName, setUserName] = useState('');
@@ -70,6 +109,34 @@ function RegisterForm() {
       setError(err.message || t('statusMessages.error'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCuiLookup = async (cuiValue) => {
+    if (!cuiValue) return;
+    const cleaned = cuiValue.toUpperCase().replace(/^RO/, '').trim();
+    setCompanyCui(cleaned);
+    if (!cleaned || cleaned.length < 2 || !/^\d+$/.test(cleaned)) {
+      return;
+    }
+
+    setIsLookingUpCui(true);
+    setError('');
+
+    try {
+      const res = await fetch(`/api/lookup-cui?cui=${cleaned}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.name) setCompanyName(data.name);
+        if (data.euid) setCompanyEuid(data.euid);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('CUI lookup failed:', errData.error || res.statusText);
+      }
+    } catch (err) {
+      console.error('CUI lookup error:', err);
+    } finally {
+      setIsLookingUpCui(false);
     }
   };
 
@@ -159,43 +226,7 @@ function RegisterForm() {
     }
   };
 
-  // Password toggle button component
-  const PasswordToggle = ({ show, onToggle, id }) => (
-    <button
-      type="button"
-      id={id}
-      onClick={onToggle}
-      aria-label={show ? t('auth.hidePassword') : t('auth.showPassword')}
-      style={{
-        position: 'absolute',
-        right: 8,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        padding: 6,
-        color: 'var(--clr-text-muted)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-      }}
-    >
-      {show ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-          <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      )}
-    </button>
-  );
+
 
   // Loading state
   if (loading || user) {
@@ -416,17 +447,49 @@ function RegisterForm() {
               <label className="form-label" htmlFor="reg-company-cui">
                 {t('register.fields.cui') || 'Company CUI'}
               </label>
-              <input
-                id="reg-company-cui"
-                type="text"
-                className="form-input"
-                value={companyCui}
-                onChange={(e) => setCompanyCui(e.target.value)}
-                placeholder="e.g. RO12345678"
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="reg-company-cui"
+                  type="text"
+                  className="form-input"
+                  value={companyCui}
+                  onChange={(e) => setCompanyCui(e.target.value)}
+                  onBlur={(e) => handleCuiLookup(e.target.value)}
+                  placeholder="e.g. RO12345678"
+                  required
+                  style={{ paddingRight: isLookingUpCui ? 40 : 12 }}
+                />
+                {isLookingUpCui && (
+                  <div style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 20 20"
+                      style={{ animation: 'spin 1s linear infinite', color: 'var(--clr-primary)' }}
+                      aria-hidden="true"
+                    >
+                      <circle
+                        cx="10" cy="10" r="7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeDasharray="32"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
               <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginTop: 4, display: 'block' }}>
-                {t('register.hints.cui') || 'Unique tax identification code'}
+                {t('register.hints.cui') || 'Unique tax identification code (preluare automată denumire & EUID la părăsirea câmpului)'}
               </span>
             </div>
 
@@ -640,6 +703,8 @@ function RegisterForm() {
                   show={showPassword}
                   onToggle={() => setShowPassword((v) => !v)}
                   id="reg-toggle-password"
+                  hideLabel={t('auth.hidePassword')}
+                  showLabel={t('auth.showPassword')}
                 />
               </div>
             </div>
@@ -665,6 +730,8 @@ function RegisterForm() {
                   show={showConfirmPassword}
                   onToggle={() => setShowConfirmPassword((v) => !v)}
                   id="reg-toggle-confirm-password"
+                  hideLabel={t('auth.hidePassword')}
+                  showLabel={t('auth.showPassword')}
                 />
               </div>
             </div>
