@@ -35,7 +35,7 @@ const MARKETING_ALLOWED_PATHS = [
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
-  const hostname = request.headers.get('host')?.replace(/:\d+$/, '') || '';
+  const hostname = (request.headers.get('x-forwarded-host') || request.headers.get('host'))?.replace(/:\d+$/, '') || '';
 
   // ─── Development: no routing logic ───
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:')) {
