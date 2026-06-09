@@ -712,37 +712,37 @@
           "name": "Mic",
           "users": "1 – 10 utilizatori",
           "description": "Perfect pentru echipe mici și antreprenori individuali",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "medium": {
           "name": "Mediu",
           "users": "11 – 50 utilizatori",
           "description": "Ideal pentru companiile în creștere cu mai multe șantiere",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "large": {
           "name": "Mare",
           "users": "50 – 500 utilizatori",
           "description": "Pentru firmele consacrate ce gestionează proiecte complexe",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "enterprise": {
           "name": "Enterprise",
           "users": "500+ utilizatori",
           "description": "Soluții personalizate pentru operațiuni la scară largă",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         }
       },
       "roleLabels": {

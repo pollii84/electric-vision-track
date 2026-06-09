@@ -113,7 +113,7 @@ export default function MarketingPage() {
     { left: '92%', dur: '11s', delay: '2.5s', size: 3 },
   ];
 
-  const fmt = useCallback((n) => '$' + n.toLocaleString(), []);
+  const fmt = useCallback((n) => n.toLocaleString() + ' RON', []);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
@@ -821,7 +821,7 @@ export default function MarketingPage() {
                       lineHeight: 1.1,
                     }}
                   >
-                    ${animatedSavings.toLocaleString()}
+                    {animatedSavings.toLocaleString()} RON
                   </div>
                 </div>
 

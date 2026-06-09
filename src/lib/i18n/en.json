@@ -714,37 +714,37 @@
           "name": "Small",
           "users": "1 – 10 users",
           "description": "Perfect for small crews and solo contractors",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "medium": {
           "name": "Medium",
           "users": "11 – 50 users",
           "description": "Ideal for growing companies with multiple sites",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "large": {
           "name": "Large",
           "users": "50 – 500 users",
           "description": "For established firms managing complex projects",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         },
         "enterprise": {
           "name": "Enterprise",
           "users": "500+ users",
           "description": "Custom solutions for large-scale operations",
-          "priceOwner": "$25.00",
-          "priceManager": "$15.00",
-          "priceSupervisor": "$5.00",
-          "priceWorker": "$2.00"
+          "priceOwner": "25 RON",
+          "priceManager": "15 RON",
+          "priceSupervisor": "5 RON",
+          "priceWorker": "2 RON"
         }
       },
       "roleLabels": {
