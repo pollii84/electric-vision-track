@@ -46,15 +46,8 @@ export function middleware(request) {
 
   // ─── Marketing domain: dimensionvisiontrack.com ───
   if (MARKETING_HOSTS.includes(hostname)) {
-    // Root → rewrite to /marketing page
-    if (pathname === '/') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/marketing';
-      return NextResponse.rewrite(url);
-    }
-
-    // Allow marketing-specific paths through
-    if (MARKETING_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
+    // Allow root and marketing-specific paths through
+    if (pathname === '/' || MARKETING_ALLOWED_PATHS.some((p) => pathname.startsWith(p))) {
       return NextResponse.next();
     }
 
