@@ -377,23 +377,6 @@ export default function LoginPage() {
             </p>
           )}
         </div>
-
-        {/* Test account hint */}
-        <div style={{
-          marginTop: 'var(--sp-md)',
-          padding: '10px 14px',
-          background: 'var(--clr-surface)',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--clr-border)',
-          fontSize: 'var(--fs-xs)',
-          color: 'var(--clr-text-muted)',
-          textAlign: 'center',
-        }}>
-          <span style={{ fontWeight: 600, color: 'var(--clr-text-secondary)' }}>
-            {t('auth.testAccount') || 'Test Account'}:
-          </span>{' '}
-          polimoga@gmail.com / test1234
-        </div>
       </div>
 
       <style jsx global>{`
