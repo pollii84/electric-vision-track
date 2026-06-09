@@ -18,7 +18,7 @@ export async function GET(request) {
     const todayStr = new Date().toISOString().slice(0, 10);
     
     // Call ANAF REST API
-    const response = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva', {
+    const response = await fetch('https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export async function GET(request) {
 
     const data = await response.json();
     
-    if (data.cod === 200 && data.found && data.found.length > 0) {
+    if (data.found && data.found.length > 0) {
       const companyInfo = data.found[0].date_generale;
       return NextResponse.json({
         name: companyInfo.denumire || '',
