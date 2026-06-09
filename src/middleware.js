@@ -26,8 +26,6 @@ const APP_HOST = 'app.dimensionvisiontrack.com';
 
 // Paths that are allowed on the marketing domain (besides the root)
 const MARKETING_ALLOWED_PATHS = [
-  '/login',
-  '/register',
   '/marketing',
   '/api',         // API routes should always work
   '/_next',       // Next.js internals
