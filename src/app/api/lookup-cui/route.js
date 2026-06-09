@@ -44,6 +44,9 @@ export async function GET(request) {
         cui: String(companyInfo.cui) || cui,
         euid: companyInfo.nrRegCom || '',
         address: companyInfo.adresa || '',
+        caen: companyInfo.cod_CAEN || '',
+        registrationDate: companyInfo.data_inregistrare || '',
+        legalForm: companyInfo.forma_juridica || '',
       });
     } else {
       return NextResponse.json(

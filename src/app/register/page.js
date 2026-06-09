@@ -57,6 +57,12 @@ function RegisterForm() {
   const [companyCui, setCompanyCui] = useState('');
   const [companyEuid, setCompanyEuid] = useState('');
   const [isLookingUpCui, setIsLookingUpCui] = useState(false);
+  const [companyExtraData, setCompanyExtraData] = useState({
+    address: '',
+    caen: '',
+    registrationDate: '',
+    legalForm: '',
+  });
 
   // User fields
   const [userName, setUserName] = useState('');
@@ -129,6 +135,14 @@ function RegisterForm() {
         const data = await res.json();
         if (data.name) setCompanyName(data.name);
         if (data.euid) setCompanyEuid(data.euid);
+        
+        // Save the background/extra company details
+        setCompanyExtraData({
+          address: data.address || '',
+          caen: data.caen || '',
+          registrationDate: data.registrationDate || '',
+          legalForm: data.legalForm || '',
+        });
       } else {
         const errData = await res.json().catch(() => ({}));
         console.warn('CUI lookup failed:', errData.error || res.statusText);
@@ -207,6 +221,10 @@ function RegisterForm() {
           name: companyName.trim(),
           cui: companyCui.trim(),
           euid: companyEuid.trim(),
+          address: companyExtraData.address || '',
+          caen: companyExtraData.caen || '',
+          registrationDate: companyExtraData.registrationDate || '',
+          legalForm: companyExtraData.legalForm || '',
         },
         user: {
           name: userName.trim(),
