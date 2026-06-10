@@ -6,7 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
-import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc } from '@/lib/firestore';
+import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc, db } from '@/lib/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const STATUS_BADGES = {
   planned: 'badge-primary',
@@ -26,12 +27,6 @@ const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #06B6D4, #0891B2)',
 ];
 
-const DEMO_TIME_LOGS = [];
-
-const DEMO_MATERIALS = [];
-
-const DEMO_TOOLS = [];
-
 export default function SiteDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -50,6 +45,41 @@ export default function SiteDetailPage() {
     startDate: '',
     endDate: '',
     budget: '',
+  });
+
+  // dynamic data states
+  const [timeLogs, setTimeLogs] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [tools, setTools] = useState([]);
+  const [tenantWorkers, setTenantWorkers] = useState([]);
+
+  // modals visibility flags
+  const [showAddLogModal, setShowAddLogModal] = useState(false);
+  const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [showAddToolModal, setShowAddToolModal] = useState(false);
+
+  // modal form states
+  const [logForm, setLogForm] = useState({
+    workerName: '',
+    date: new Date().toISOString().split('T')[0],
+    hours: '',
+    timeRange: '',
+    description: '',
+  });
+
+  const [materialForm, setMaterialForm] = useState({
+    name: '',
+    category: 'Cabluri',
+    qty: '',
+    unit: 'buc',
+    cost: '',
+  });
+
+  const [toolForm, setToolForm] = useState({
+    name: '',
+    serial: '',
+    status: 'available',
+    assignedTo: '-',
   });
 
   useEffect(() => {
@@ -73,6 +103,57 @@ export default function SiteDetailPage() {
     });
     return () => unsubscribe();
   }, [tenantId, params.id]);
+
+  // Load Time Logs from Firestore subcollection
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    const q = query(
+      collection(db, 'tenants', tenantId, 'sites', params.id, 'timeLogs'),
+      orderBy('date', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTimeLogs(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Failed to load time logs:', err);
+    });
+    return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  // Load Materials from Firestore subcollection
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    const q = collection(db, 'tenants', tenantId, 'sites', params.id, 'materials');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMaterials(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Failed to load materials:', err);
+    });
+    return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  // Load Tools from Firestore subcollection
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    const q = collection(db, 'tenants', tenantId, 'sites', params.id, 'tools');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTools(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Failed to load tools:', err);
+    });
+    return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  // Load Tenant Workers list for selects
+  useEffect(() => {
+    if (!tenantId) return;
+    const q = collection(db, 'tenants', tenantId, 'workers');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTenantWorkers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Failed to load workers:', err);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
 
   const handleFormChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -103,15 +184,82 @@ export default function SiteDetailPage() {
     }
   };
 
+  const handleAddLog = async () => {
+    if (!tenantId || !params.id || !logForm.workerName || !logForm.hours) return;
+    try {
+      await addDoc(collection(db, 'tenants', tenantId, 'sites', params.id, 'timeLogs'), {
+        worker: logForm.workerName,
+        date: logForm.date,
+        hours: Number(logForm.hours) || 0,
+        timeRange: logForm.timeRange || '',
+        description: logForm.description || '',
+      });
+      setShowAddLogModal(false);
+      setLogForm({
+        workerName: '',
+        date: new Date().toISOString().split('T')[0],
+        hours: '',
+        timeRange: '',
+        description: '',
+      });
+    } catch (err) {
+      console.error('Failed to add time log:', err);
+    }
+  };
+
+  const handleAddMaterial = async () => {
+    if (!tenantId || !params.id || !materialForm.name || !materialForm.qty || !materialForm.cost) return;
+    try {
+      await addDoc(collection(db, 'tenants', tenantId, 'sites', params.id, 'materials'), {
+        name: materialForm.name,
+        category: materialForm.category,
+        qty: Number(materialForm.qty) || 0,
+        unit: materialForm.unit,
+        cost: Number(materialForm.cost) || 0,
+      });
+      setShowAddMaterialModal(false);
+      setMaterialForm({
+        name: '',
+        category: 'Cabluri',
+        qty: '',
+        unit: 'buc',
+        cost: '',
+      });
+    } catch (err) {
+      console.error('Failed to add material:', err);
+    }
+  };
+
+  const handleAddTool = async () => {
+    if (!tenantId || !params.id || !toolForm.name || !toolForm.serial) return;
+    try {
+      await addDoc(collection(db, 'tenants', tenantId, 'sites', params.id, 'tools'), {
+        name: toolForm.name,
+        serial: toolForm.serial,
+        status: toolForm.status,
+        assignedTo: toolForm.assignedTo,
+      });
+      setShowAddToolModal(false);
+      setToolForm({
+        name: '',
+        serial: '',
+        status: 'available',
+        assignedTo: '-',
+      });
+    } catch (err) {
+      console.error('Failed to add tool:', err);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('overview');
 
   const totalMaterialCosts = useMemo(() => {
-    return DEMO_MATERIALS.reduce((sum, item) => sum + item.qty * item.cost, 0);
-  }, []);
+    return materials.reduce((sum, item) => sum + Number(item.qty || 0) * Number(item.cost || 0), 0);
+  }, [materials]);
 
   const totalHours = useMemo(() => {
-    return DEMO_TIME_LOGS.reduce((sum, log) => sum + log.hours, 0);
-  }, []);
+    return timeLogs.reduce((sum, log) => sum + Number(log.hours || 0), 0);
+  }, [timeLogs]);
 
   const totalLaborCosts = useMemo(() => {
     // Estimating an average of 65 RON/h labor cost
@@ -352,7 +500,7 @@ export default function SiteDetailPage() {
           <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0 }}>⏱️ {t('sites.tabs.timeLogs')}</h3>
-              <button className="btn btn-primary btn-sm">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddLogModal(true)}>
                 <span>+</span> {t('sites.tabs.addTimeLog')}
               </button>
             </div>
@@ -369,14 +517,14 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_TIME_LOGS.length === 0 ? (
+                  {timeLogs.length === 0 ? (
                     <tr>
                       <td colSpan="5" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
                         No time logs recorded yet.
                       </td>
                     </tr>
                   ) : (
-                    DEMO_TIME_LOGS.map((log) => (
+                    timeLogs.map((log) => (
                       <tr key={log.id}>
                         <td className="font-semibold">{log.date}</td>
                         <td>{log.worker}</td>
@@ -397,7 +545,7 @@ export default function SiteDetailPage() {
           <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0 }}>📦 {t('sites.tabs.materials')}</h3>
-              <button className="btn btn-primary btn-sm">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddMaterialModal(true)}>
                 <span>+</span> {t('sites.tabs.addMaterial')}
               </button>
             </div>
@@ -415,7 +563,7 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_MATERIALS.length === 0 ? (
+                  {materials.length === 0 ? (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
                         No materials added yet.
@@ -423,7 +571,7 @@ export default function SiteDetailPage() {
                     </tr>
                   ) : (
                     <>
-                      {DEMO_MATERIALS.map((item) => (
+                      {materials.map((item) => (
                         <tr key={item.id}>
                           <td className="font-semibold">{item.name}</td>
                           <td>
@@ -456,7 +604,7 @@ export default function SiteDetailPage() {
           <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0 }}>🔧 {t('sites.tabs.tools')}</h3>
-              <button className="btn btn-primary btn-sm">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddToolModal(true)}>
                 <span>+</span> {t('sites.tabs.addTool')}
               </button>
             </div>
@@ -472,14 +620,14 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_TOOLS.length === 0 ? (
+                  {tools.length === 0 ? (
                     <tr>
                       <td colSpan="4" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
                         No tools assigned yet.
                       </td>
                     </tr>
                   ) : (
-                    DEMO_TOOLS.map((tool) => (
+                    tools.map((tool) => (
                       <tr key={tool.id}>
                         <td className="font-semibold">{tool.name}</td>
                         <td className="text-muted">{tool.serial}</td>
@@ -657,6 +805,367 @@ export default function SiteDetailPage() {
                 className="btn btn-primary"
                 onClick={handleEditSave}
                 disabled={!formData.name.trim() || !formData.clientName.trim() || !formData.address.trim()}
+              >
+                {t('common.buttons.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Add Time Log Modal */}
+      {showAddLogModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowAddLogModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-log-title"
+        >
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="add-log-title">
+                ⏱️ {t('sites.tabs.addTimeLog') || 'Add Time Log'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowAddLogModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Worker Selection */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="log-worker">
+                  Worker *
+                </label>
+                <select
+                  id="log-worker"
+                  className="form-select"
+                  value={logForm.workerName}
+                  onChange={(e) => setLogForm(prev => ({ ...prev, workerName: e.target.value }))}
+                  required
+                >
+                  <option value="">-- Select Worker --</option>
+                  {tenantWorkers.map(w => (
+                    <option key={w.id} value={`${w.firstName} ${w.lastName}`}>
+                      {w.firstName} {w.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date & Hours */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="log-date">
+                    Date *
+                  </label>
+                  <input
+                    id="log-date"
+                    className="form-input"
+                    type="date"
+                    value={logForm.date}
+                    onChange={(e) => setLogForm(prev => ({ ...prev, date: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="log-hours">
+                    Hours *
+                  </label>
+                  <input
+                    id="log-hours"
+                    className="form-input"
+                    type="number"
+                    min="0.5"
+                    step="0.5"
+                    value={logForm.hours}
+                    onChange={(e) => setLogForm(prev => ({ ...prev, hours: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Time Range */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="log-range">
+                  Time Range (e.g. 08:00 - 17:00)
+                </label>
+                <input
+                  id="log-range"
+                  className="form-input"
+                  type="text"
+                  placeholder="08:00 - 17:00"
+                  value={logForm.timeRange}
+                  onChange={(e) => setLogForm(prev => ({ ...prev, timeRange: e.target.value }))}
+                />
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="log-desc">
+                  Description
+                </label>
+                <textarea
+                  id="log-desc"
+                  className="form-input"
+                  rows="3"
+                  value={logForm.description}
+                  onChange={(e) => setLogForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddLogModal(false)}
+              >
+                {t('common.buttons.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddLog}
+                disabled={!logForm.workerName || !logForm.hours}
+              >
+                {t('common.buttons.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Material Modal */}
+      {showAddMaterialModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowAddMaterialModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-material-title"
+        >
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="add-material-title">
+                📦 {t('sites.tabs.addMaterial') || 'Add Material'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowAddMaterialModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Material Name */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="mat-name">
+                  Material Name *
+                </label>
+                <input
+                  id="mat-name"
+                  className="form-input"
+                  type="text"
+                  value={materialForm.name}
+                  onChange={(e) => setMaterialForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Category */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="mat-cat">
+                  Category *
+                </label>
+                <select
+                  id="mat-cat"
+                  className="form-select"
+                  value={materialForm.category}
+                  onChange={(e) => setMaterialForm(prev => ({ ...prev, category: e.target.value }))}
+                  required
+                >
+                  {['Cabluri', 'Protecție', 'Prize', 'Tuburi', 'Doze', 'Tablouri', 'Accesorii', 'Conectică'].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Qty & Unit */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="mat-qty">
+                    Quantity *
+                  </label>
+                  <input
+                    id="mat-qty"
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    value={materialForm.qty}
+                    onChange={(e) => setMaterialForm(prev => ({ ...prev, qty: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="mat-unit">
+                    Unit *
+                  </label>
+                  <input
+                    id="mat-unit"
+                    className="form-input"
+                    type="text"
+                    placeholder="e.g. buc, m"
+                    value={materialForm.unit}
+                    onChange={(e) => setMaterialForm(prev => ({ ...prev, unit: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Cost */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="mat-cost">
+                  Unit Cost (RON) *
+                </label>
+                <input
+                  id="mat-cost"
+                  className="form-input"
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  value={materialForm.cost}
+                  onChange={(e) => setMaterialForm(prev => ({ ...prev, cost: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddMaterialModal(false)}
+              >
+                {t('common.buttons.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddMaterial}
+                disabled={!materialForm.name || !materialForm.qty || !materialForm.cost}
+              >
+                {t('common.buttons.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Tool Modal */}
+      {showAddToolModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowAddToolModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-tool-title"
+        >
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="add-tool-title">
+                🔧 {t('sites.tabs.addTool') || 'Add Tool'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowAddToolModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Tool Name */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="tool-name">
+                  Tool Name *
+                </label>
+                <input
+                  id="tool-name"
+                  className="form-input"
+                  type="text"
+                  value={toolForm.name}
+                  onChange={(e) => setToolForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Serial Number */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="tool-serial">
+                  Serial Number *
+                </label>
+                <input
+                  id="tool-serial"
+                  className="form-input"
+                  type="text"
+                  value={toolForm.serial}
+                  onChange={(e) => setToolForm(prev => ({ ...prev, serial: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Status & Assigned To */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="tool-status">
+                    Status
+                  </label>
+                  <select
+                    id="tool-status"
+                    className="form-select"
+                    value={toolForm.status}
+                    onChange={(e) => setToolForm(prev => ({ ...prev, status: e.target.value }))}
+                  >
+                    <option value="available">Available</option>
+                    <option value="in_use">In Use</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="tool-worker">
+                    Assigned To
+                  </label>
+                  <select
+                    id="tool-worker"
+                    className="form-select"
+                    value={toolForm.assignedTo}
+                    onChange={(e) => setToolForm(prev => ({ ...prev, assignedTo: e.target.value }))}
+                  >
+                    <option value="-">-</option>
+                    {tenantWorkers.map(w => (
+                      <option key={w.id} value={`${w.firstName} ${w.lastName}`}>
+                        {w.firstName} {w.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddToolModal(false)}
+              >
+                {t('common.buttons.cancel')}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddTool}
+                disabled={!toolForm.name || !toolForm.serial}
               >
                 {t('common.buttons.save')}
               </button>
