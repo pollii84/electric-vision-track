@@ -918,10 +918,9 @@ h5 { font-size: var(--fs-md); }
   left: 0;
   right: 0;
   height: var(--bottom-nav-height);
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
+  background: var(--clr-bg-surface);
+  border-top: 1px solid var(--clr-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
   z-index: var(--z-sticky);
   padding: var(--sp-xs) 0 env(safe-area-inset-bottom, 0);
 }
