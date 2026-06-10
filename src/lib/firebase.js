@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -12,10 +12,26 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'YOUR_APP_ID',
 };
 
+const isE2ETest = typeof window !== 'undefined' && 
+  (window.__E2E_TESTING__ || 
+   (window.navigator && window.navigator.webdriver) || 
+   (window.navigator && (/HeadlessChrome|Playwright/i).test(window.navigator.userAgent)));
+
+if (typeof window !== 'undefined') {
+  console.log('🔥 Firebase isE2ETest detection:', isE2ETest, 'navigator.webdriver:', window.navigator.webdriver, 'userAgent:', window.navigator.userAgent);
+}
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
-const db = getFirestore(app);
+
+let db;
+if (!getApps().length) {
+  db = initializeFirestore(app, isE2ETest ? { experimentalForceLongPolling: true } : {});
+} else {
+  db = getFirestore(app);
+}
+
 const storage = getStorage(app);
 
 export { app, auth, googleProvider, db, storage };

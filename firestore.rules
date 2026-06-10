@@ -87,6 +87,28 @@ service cloud.firestore {
         allow create: if isTenantManager(tenantId) || isSuperAdmin();
         allow update: if isTenantMember(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+
+        // ── Subcollections under site ──
+        match /timeLogs/{logId} {
+          allow read: if isTenantMember(tenantId) || isSuperAdmin();
+          allow create: if isTenantMember(tenantId) || isSuperAdmin();
+          allow update: if isTenantManager(tenantId) || isSuperAdmin();
+          allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+        }
+
+        match /materials/{matId} {
+          allow read: if isTenantMember(tenantId) || isSuperAdmin();
+          allow create: if isTenantMember(tenantId) || isSuperAdmin();
+          allow update: if isTenantMember(tenantId) || isSuperAdmin();
+          allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+        }
+
+        match /tools/{toolId} {
+          allow read: if isTenantMember(tenantId) || isSuperAdmin();
+          allow create: if isTenantMember(tenantId) || isSuperAdmin();
+          allow update: if isTenantMember(tenantId) || isSuperAdmin();
+          allow delete: if isTenantManager(tenantId) || isSuperAdmin();
+        }
       }
 
       match /workers/{docId} {
