@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import versionInfo from '../../../version.json';
 
 export default function SettingsPage() {
   const { t, locale, setLocale } = useI18n();
@@ -260,7 +261,7 @@ export default function SettingsPage() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)' }}>
               <span className="text-muted">{t('settings.version')}:</span>
-              <span className="font-semibold">1.0.0</span>
+              <span className="font-semibold">{versionInfo.version}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)', borderTop: '1px solid var(--clr-border)', paddingTop: 'var(--sp-sm)', marginTop: 'var(--sp-xs)' }}>
