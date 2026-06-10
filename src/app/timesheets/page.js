@@ -179,42 +179,74 @@ export default function TimesheetsPage() {
           <div className="empty-state-title">{t('timesheets.noLogs')}</div>
         </div>
       ) : (
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="data-table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t('timesheets.fields.worker')}</th>
-                  <th>{t('timesheets.fields.site')}</th>
-                  <th>{t('timesheets.fields.date')}</th>
-                  <th style={{ textAlign: 'center' }}>Std (1x)</th>
-                  <th style={{ textAlign: 'center' }}>OT (1x)</th>
-                  <th style={{ textAlign: 'center' }}>Wknd (1.5x)</th>
-                  <th style={{ textAlign: 'right' }}>{t('timesheets.fields.computedCost')}</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logsWithCalculations.map((log) => (
-                  <tr key={log.id}>
-                    <td className="font-semibold">{log.workerName}</td>
-                    <td>🏗️ {log.siteName}</td>
-                    <td className="text-muted">{log.date}</td>
-                    <td style={{ textAlign: 'center' }}>{log.standardHours}h</td>
-                    <td style={{ textAlign: 'center' }}>{log.overtimeHours}h</td>
-                    <td style={{ textAlign: 'center' }} className={log.weekendHours > 0 ? 'font-bold' : ''}>
-                      {log.weekendHours > 0 ? `${log.weekendHours}h 🌟` : '0h'}
-                    </td>
-                    <td className="font-bold text-right" style={{ color: 'var(--clr-primary)' }}>
-                      {formatCurrency(log.computedCost)} RON
-                    </td>
-                    <td className="text-muted text-sm">{log.description || '-'}</td>
+        <>
+          {/* Desktop Table View */}
+          <div className="glass-card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('timesheets.fields.worker')}</th>
+                    <th>{t('timesheets.fields.site')}</th>
+                    <th>{t('timesheets.fields.date')}</th>
+                    <th style={{ textAlign: 'center' }}>Std (1x)</th>
+                    <th style={{ textAlign: 'center' }}>OT (1x)</th>
+                    <th style={{ textAlign: 'center' }}>Wknd (1.5x)</th>
+                    <th style={{ textAlign: 'right' }}>{t('timesheets.fields.computedCost')}</th>
+                    <th>Notes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logsWithCalculations.map((log) => (
+                    <tr key={log.id}>
+                      <td className="font-semibold">{log.workerName}</td>
+                      <td>🏗️ {log.siteName}</td>
+                      <td className="text-muted">{log.date}</td>
+                      <td style={{ textAlign: 'center' }}>{log.standardHours}h</td>
+                      <td style={{ textAlign: 'center' }}>{log.overtimeHours}h</td>
+                      <td style={{ textAlign: 'center' }} className={log.weekendHours > 0 ? 'font-bold' : ''}>
+                        {log.weekendHours > 0 ? `${log.weekendHours}h 🌟` : '0h'}
+                      </td>
+                      <td className="font-bold text-right" style={{ color: 'var(--clr-primary)' }}>
+                        {formatCurrency(log.computedCost)} RON
+                      </td>
+                      <td className="text-muted text-sm">{log.description || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card List View */}
+          <div className="mobile-card-list mobile-only">
+            {logsWithCalculations.map((log) => (
+              <div key={log.id} className="mobile-card-item">
+                <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <div style={{ color: 'var(--clr-text)' }}>{log.workerName}</div>
+                  <div style={{ color: 'var(--clr-primary)' }}>{formatCurrency(log.computedCost)} RON</div>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">{t('timesheets.fields.site')}</span>
+                  <span className="mobile-card-value">🏗️ {log.siteName}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">{t('timesheets.fields.date')}</span>
+                  <span className="mobile-card-value">{log.date}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Standard / OT / Weekend</span>
+                  <span className="mobile-card-value">{log.standardHours}h / {log.overtimeHours}h / {log.weekendHours}h</span>
+                </div>
+                {log.description && (
+                  <div style={{ marginTop: '8px', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', background: 'rgba(255, 255, 255, 0.02)', padding: '6px 8px', borderRadius: '4px' }}>
+                    <strong>Notes:</strong> {log.description}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Log Hours Modal */}

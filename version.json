@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "buildDate": "2026-06-10",
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "date": "2026-06-10",
+      "changes": ["Initial release with company registration, CUI lookup, dashboard, and multi-language support"]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { useBusiness } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
+import VersionBadge from '@/components/VersionBadge';
 
 const NAV_SECTIONS = [
   {
@@ -233,6 +234,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
+        <VersionBadge />
         <div className="sidebar-footer">
           {isDemo && (
             <div style={{

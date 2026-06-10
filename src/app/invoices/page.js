@@ -203,80 +203,153 @@ export default function InvoicesPage() {
           <div className="empty-state-title">{t('common.noResults')}</div>
         </div>
       ) : (
-        <div className="glass-card no-print" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="data-table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Invoice Code</th>
-                  <th>Work Site</th>
-                  <th>Billing Stage</th>
-                  <th>Due Date</th>
-                  <th>Invoice Value</th>
-                  <th>Paid Amount</th>
-                  <th>Outstanding</th>
-                  <th>Status</th>
-                  <th style={{ width: 180 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.map((inv) => {
-                  const outstanding = inv.amount - inv.paidAmount;
-                  const isOverdue = inv.status === 'overdue' || (inv.status !== 'paid' && calculateDaysOverdue(inv.dueDate) > 0);
-                  const delayDays = calculateDaysOverdue(inv.dueDate);
+        <>
+          {/* Desktop Table View */}
+          <div className="glass-card no-print desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice Code</th>
+                    <th>Work Site</th>
+                    <th>Billing Stage</th>
+                    <th>Due Date</th>
+                    <th>Invoice Value</th>
+                    <th>Paid Amount</th>
+                    <th>Outstanding</th>
+                    <th>Status</th>
+                    <th style={{ width: 180 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInvoices.map((inv) => {
+                    const outstanding = inv.amount - inv.paidAmount;
+                    const isOverdue = inv.status === 'overdue' || (inv.status !== 'paid' && calculateDaysOverdue(inv.dueDate) > 0);
+                    const delayDays = calculateDaysOverdue(inv.dueDate);
 
-                  return (
-                    <tr key={inv.id}>
-                      <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{inv.invoiceNumber}</td>
-                      <td className="font-semibold">🏗️ {inv.siteName}</td>
-                      <td>{inv.workStage}</td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span>{inv.dueDate}</span>
-                          {isOverdue && delayDays > 0 && (
-                            <span className="badge badge-danger" style={{ fontSize: '10px', alignSelf: 'flex-start', padding: '1px 5px' }}>
-                              ⚠️ {delayDays} days late
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="font-semibold">{formatCurrency(inv.amount)} RON</td>
-                      <td className="font-semibold" style={{ color: 'var(--clr-success)' }}>{formatCurrency(inv.paidAmount)} RON</td>
-                      <td className="font-bold" style={{ color: outstanding > 0 ? 'var(--clr-accent)' : 'inherit' }}>
-                        {formatCurrency(outstanding)} RON
-                      </td>
-                      <td>
-                        <span className={`badge ${STATUS_BADGES[isOverdue ? 'overdue' : inv.status]}`}>
-                          {t(`invoices.statuses.${isOverdue ? 'overdue' : inv.status}`)}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {outstanding > 0 && (
+                    return (
+                      <tr key={inv.id}>
+                        <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{inv.invoiceNumber}</td>
+                        <td className="font-semibold">🏗️ {inv.siteName}</td>
+                        <td>{inv.workStage}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{inv.dueDate}</span>
+                            {isOverdue && delayDays > 0 && (
+                              <span className="badge badge-danger" style={{ fontSize: '10px', alignSelf: 'flex-start', padding: '1px 5px' }}>
+                                ⚠️ {delayDays} days late
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="font-semibold">{formatCurrency(inv.amount)} RON</td>
+                        <td className="font-semibold" style={{ color: 'var(--clr-success)' }}>{formatCurrency(inv.paidAmount)} RON</td>
+                        <td className="font-bold" style={{ color: outstanding > 0 ? 'var(--clr-accent)' : 'inherit' }}>
+                          {formatCurrency(outstanding)} RON
+                        </td>
+                        <td>
+                          <span className={`badge ${STATUS_BADGES[isOverdue ? 'overdue' : inv.status]}`}>
+                            {t(`invoices.statuses.${isOverdue ? 'overdue' : inv.status}`)}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {outstanding > 0 && (
+                              <button
+                                className="btn btn-primary btn-xs"
+                                onClick={() => handleOpenPayment(inv)}
+                                style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)' }}
+                              >
+                                $ Pay
+                              </button>
+                            )}
                             <button
-                              className="btn btn-primary btn-xs"
-                              onClick={() => handleOpenPayment(inv)}
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => triggerPrintInvoice(inv)}
                               style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)' }}
                             >
-                              $ Pay
+                              🖨️ Print
                             </button>
-                          )}
-                          <button
-                            className="btn btn-secondary btn-xs"
-                            onClick={() => triggerPrintInvoice(inv)}
-                            style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)' }}
-                          >
-                            🖨️ Print
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card List View */}
+          <div className="mobile-card-list mobile-only no-print">
+            {filteredInvoices.map((inv) => {
+              const outstanding = inv.amount - inv.paidAmount;
+              const isOverdue = inv.status === 'overdue' || (inv.status !== 'paid' && calculateDaysOverdue(inv.dueDate) > 0);
+              const delayDays = calculateDaysOverdue(inv.dueDate);
+
+              return (
+                <div key={inv.id} className="mobile-card-item">
+                  <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <div style={{ color: 'var(--clr-primary)' }}>{inv.invoiceNumber}</div>
+                    <span className={`badge ${STATUS_BADGES[isOverdue ? 'overdue' : inv.status]}`}>
+                      {t(`invoices.statuses.${isOverdue ? 'overdue' : inv.status}`)}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Work Site</span>
+                    <span className="mobile-card-value">🏗️ {inv.siteName}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Billing Stage</span>
+                    <span className="mobile-card-value">{inv.workStage}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Due Date</span>
+                    <span className="mobile-card-value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <span>{inv.dueDate}</span>
+                      {isOverdue && delayDays > 0 && (
+                        <span className="badge badge-danger" style={{ fontSize: '9px', padding: '1px 4px' }}>
+                          ⚠️ {delayDays} days late
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Total Value</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '600' }}>{formatCurrency(inv.amount)} RON</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Paid Amount</span>
+                    <span className="mobile-card-value" style={{ color: 'var(--clr-success)', fontWeight: '600' }}>{formatCurrency(inv.paidAmount)} RON</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Outstanding</span>
+                    <span className="mobile-card-value" style={{ color: outstanding > 0 ? 'var(--clr-accent)' : 'inherit', fontWeight: 'bold' }}>
+                      {formatCurrency(outstanding)} RON
+                    </span>
+                  </div>
+                  
+                  <div className="mobile-card-row card-actions">
+                    {outstanding > 0 && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleOpenPayment(inv)}
+                      >
+                        $ Pay
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => triggerPrintInvoice(inv)}
+                    >
+                      🖨️ Print
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Add Invoice Modal */}

@@ -196,48 +196,107 @@ export default function ContactsPage() {
           )}
         </div>
       ) : (
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="data-table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t('contacts.fields.name')} / {t('contacts.fields.company')}</th>
-                  <th>{t('contacts.fields.type')}</th>
-                  <th>{t('contacts.fields.phone')}</th>
-                  <th>{t('contacts.fields.email')}</th>
-                  <th>{t('contacts.fields.workTypes')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredContacts.map((contact) => (
-                  <tr key={contact.id}>
-                    <td className="font-semibold">{formatDisplayName(contact)}</td>
-                    <td>
-                      <span className={`badge ${BADGE_COLORS[contact.type]}`}>
-                        {t(`contacts.types.${contact.type}`)}
-                      </span>
-                    </td>
-                    <td>{contact.phone || '-'}</td>
-                    <td>{contact.email || '-'}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {contact.workTypes && contact.workTypes.length > 0 ? (
-                          contact.workTypes.map((wt) => (
-                            <span key={wt} className="badge badge-neutral" style={{ fontSize: 'var(--fs-xs)' }}>
-                              {wt}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-muted" style={{ fontSize: 'var(--fs-xs)' }}>-</span>
-                        )}
-                      </div>
-                    </td>
+        <>
+          {/* Desktop view */}
+          <div className="glass-card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('contacts.fields.name')} / {t('contacts.fields.company')}</th>
+                    <th>{t('contacts.fields.type')}</th>
+                    <th>{t('contacts.fields.phone')}</th>
+                    <th>{t('contacts.fields.email')}</th>
+                    <th>{t('contacts.fields.workTypes')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredContacts.map((contact) => (
+                    <tr key={contact.id}>
+                      <td className="font-semibold">{formatDisplayName(contact)}</td>
+                      <td>
+                        <span className={`badge ${BADGE_COLORS[contact.type]}`}>
+                          {t(`contacts.types.${contact.type}`)}
+                        </span>
+                      </td>
+                      <td>{contact.phone || '-'}</td>
+                      <td>{contact.email || '-'}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {contact.workTypes && contact.workTypes.length > 0 ? (
+                            contact.workTypes.map((wt) => (
+                              <span key={wt} className="badge badge-neutral" style={{ fontSize: 'var(--fs-xs)' }}>
+                                {wt}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: 'var(--fs-xs)' }}>-</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card List View */}
+          <div className="mobile-card-list mobile-only">
+            {filteredContacts.map((contact) => (
+              <div key={contact.id} className="mobile-card-item">
+                <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <div style={{ color: 'var(--clr-text)' }}>{formatDisplayName(contact)}</div>
+                  <span className={`badge ${BADGE_COLORS[contact.type]}`}>
+                    {t(`contacts.types.${contact.type}`)}
+                  </span>
+                </div>
+                {contact.phone && (
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">{t('contacts.fields.phone')}</span>
+                    <span className="mobile-card-value">
+                      <a href={`tel:${contact.phone}`} style={{ color: 'var(--clr-primary)', textDecoration: 'none', fontWeight: '500' }}>
+                        📞 {contact.phone}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {contact.email && (
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">{t('contacts.fields.email')}</span>
+                    <span className="mobile-card-value" style={{ wordBreak: 'break-all' }}>
+                      <a href={`mailto:${contact.email}`} style={{ color: 'var(--clr-text-secondary)', textDecoration: 'none' }}>
+                        ✉️ {contact.email}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {contact.address && (
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">{t('contacts.fields.address')}</span>
+                    <span className="mobile-card-value" style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>
+                      📍 {contact.address}
+                    </span>
+                  </div>
+                )}
+                {contact.workTypes && contact.workTypes.length > 0 && (
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {contact.workTypes.map((wt) => (
+                      <span key={wt} className="badge badge-neutral" style={{ fontSize: '10px', padding: '2px 6px' }}>
+                        {wt}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {contact.notes && (
+                  <div style={{ marginTop: '8px', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', background: 'rgba(255, 255, 255, 0.02)', padding: '6px 8px', borderRadius: '4px' }}>
+                    <strong>Notes:</strong> {contact.notes}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Add Contact Modal */}

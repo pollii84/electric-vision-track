@@ -221,8 +221,9 @@ export default function MarketingPage() {
 
           {/* Right — Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {/* Language toggle */}
+            {/* Language toggle - desktop */}
             <div
+              className="lang-desktop"
               role="group"
               aria-label={t('settings.language')}
               style={{ display: 'flex', gap: 2, marginRight: 8 }}
@@ -247,8 +248,20 @@ export default function MarketingPage() {
               </button>
             </div>
 
-            <a href="https://app.dimensionvisiontrack.com/login" id="nav-login" className="btn btn-ghost btn-sm">
-              {t('marketing.nav.login')}
+            {/* Language toggle - mobile */}
+            <button
+              id="mkt-lang-toggle-mobile"
+              className="btn btn-ghost btn-sm lang-mobile"
+              onClick={() => setLocale(locale === 'en' ? 'ro' : 'en')}
+              style={{ padding: '6px 8px', fontSize: 'var(--fs-xs)', marginRight: 4 }}
+              aria-label={t('settings.language')}
+            >
+              🌐 {locale.toUpperCase()}
+            </button>
+
+            <a href="https://app.dimensionvisiontrack.com/login" id="nav-login" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span className="login-icon" style={{ display: 'none' }}>🔑</span>
+              <span className="login-text">{t('marketing.nav.login')}</span>
             </a>
             <a href="https://app.dimensionvisiontrack.com/register" id="nav-register" className="btn btn-primary btn-sm">
               {t('marketing.nav.authentication') || 'Authentication'}
@@ -1306,6 +1319,29 @@ export default function MarketingPage() {
         /* Smooth scroll for the whole page */
         html {
           scroll-behavior: smooth;
+        }
+
+        /* Mobile specific header optimizations */
+        @media (max-width: 480px) {
+          .login-text { display: none !important; }
+          .login-icon { display: inline !important; }
+          .lang-desktop { display: none !important; }
+          .lang-mobile { display: inline-block !important; }
+        }
+        @media (min-width: 481px) {
+          .lang-mobile { display: none !important; }
+        }
+        
+        /* Mobile slider touch targets (>=44px) */
+        @media (max-width: 768px) {
+          input[type="range"]::-webkit-slider-thumb {
+            width: 44px !important;
+            height: 44px !important;
+          }
+          input[type="range"]::-moz-range-thumb {
+            width: 44px !important;
+            height: 44px !important;
+          }
         }
       `}</style>
     </div>
