@@ -6,11 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_CONTRACTS = [
-  { id: '1', contractNumber: 'CON-2026-0001', siteName: 'Vila Popescu', clientName: 'Popescu Ion', totalAmount: 16866, status: 'active', signedAt: '2026-03-20', ipLog: '192.168.1.100', signature: 'MOCK_SIGNATURE' },
-  { id: '2', contractNumber: 'CON-2026-0002', siteName: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL', totalAmount: 11090, status: 'pending_signature', signedAt: '-', ipLog: '-' },
-  { id: '3', contractNumber: 'CON-2026-0003', siteName: 'Birouri Sigma Center', clientName: 'Sigma Development', totalAmount: 28500, status: 'draft', signedAt: '-', ipLog: '-' },
-];
+const DEMO_CONTRACTS = [];
 
 const STATUS_BADGES = {
   draft: 'badge-neutral',
@@ -27,14 +23,14 @@ export default function ContractDetailPage() {
 
   const contractId = params.id;
   const contract = useMemo(() => {
-    return DEMO_CONTRACTS.find((c) => c.id === contractId) || DEMO_CONTRACTS[0];
+    return DEMO_CONTRACTS.find((c) => c.id === contractId) || null;
   }, [contractId]);
 
   // Contract state
-  const [status, setStatus] = useState(contract.status);
-  const [signedAt, setSignedAt] = useState(contract.signedAt);
-  const [ipLog, setIpLog] = useState(contract.ipLog);
-  const [signatureData, setSignatureData] = useState(contract.signature || null);
+  const [status, setStatus] = useState(contract?.status || 'draft');
+  const [signedAt, setSignedAt] = useState(contract?.signedAt || '-');
+  const [ipLog, setIpLog] = useState(contract?.ipLog || '-');
+  const [signatureData, setSignatureData] = useState(contract?.signature || null);
   const [addenda, setAddenda] = useState([]);
   const [showAddendaModal, setShowAddendaModal] = useState(false);
 
@@ -67,8 +63,8 @@ export default function ContractDetailPage() {
   }, [addenda]);
 
   const contractOverallValue = useMemo(() => {
-    return contract.totalAmount + addendaTotal;
-  }, [contract.totalAmount, addendaTotal]);
+    return (contract?.totalAmount || 0) + addendaTotal;
+  }, [contract, addendaTotal]);
 
   const paymentStages = useMemo(() => {
     const total = contractOverallValue;
@@ -162,6 +158,26 @@ export default function ContractDetailPage() {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ro-RO').format(value);
   };
+
+  if (!contract) {
+    return (
+      <Layout>
+        <div style={{ marginBottom: 'var(--sp-md)' }}>
+          <Link href="/contracts" style={{ textDecoration: 'none', color: 'var(--clr-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span>←</span> {t('common.buttons.back')}
+          </Link>
+        </div>
+        <div className="empty-state">
+          <div className="empty-state-icon">📑</div>
+          <div className="empty-state-title">{t('contracts.notFound') || 'Contract not found'}</div>
+          <div className="empty-state-desc">The contract you are looking for does not exist or has been removed.</div>
+          <Link href="/contracts" className="btn btn-primary">
+            {t('common.buttons.back')}
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

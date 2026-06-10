@@ -4,25 +4,11 @@ import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_WORKERS = [
-  { id: '1', name: 'Andrei Popescu', hourlyRate: 85 },
-  { id: '2', name: 'Maria Ionescu', hourlyRate: 70 },
-  { id: '3', name: 'Ion Munteanu', hourlyRate: 65 },
-  { id: '4', name: 'Elena Dragomir', hourlyRate: 55 },
-];
+const DEMO_WORKERS = [];
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu' },
-  { id: '2', name: 'Bloc Florești - Et. 3' },
-  { id: '3', name: 'Birouri Sigma Center' }
-];
+const DEMO_SITES = [];
 
-const INITIAL_LOGS = [
-  { id: '1', workerId: '1', siteId: '1', date: '2026-06-01', standardHours: 8, overtimeHours: 2, weekendHours: 0, description: 'Ground floor wiring and conduits installation' },
-  { id: '2', workerId: '2', siteId: '1', date: '2026-06-01', standardHours: 8, overtimeHours: 0, weekendHours: 0, description: 'Cable routing and junction boxes setup' },
-  { id: '3', workerId: '3', siteId: '2', date: '2026-06-02', standardHours: 8, overtimeHours: 1, weekendHours: 0, description: 'Distribution board breaker mounts' },
-  { id: '4', workerId: '4', siteId: '3', date: '2026-05-31', standardHours: 0, overtimeHours: 0, weekendHours: 6, description: 'Sunday emergency site maintenance' }
-];
+const INITIAL_LOGS = [];
 
 export default function TimesheetsPage() {
   const { t } = useI18n();
@@ -41,8 +27,8 @@ export default function TimesheetsPage() {
     description: '',
   });
 
-  const getWorker = (id) => DEMO_WORKERS.find((w) => w.id === id) || DEMO_WORKERS[0];
-  const getSite = (id) => DEMO_SITES.find((s) => s.id === id) || DEMO_SITES[0];
+  const getWorker = (id) => DEMO_WORKERS.find((w) => w.id === id) || { id: '0', name: 'Unknown', hourlyRate: 0 };
+  const getSite = (id) => DEMO_SITES.find((s) => s.id === id) || { id: '0', name: 'Unknown' };
 
   const logsWithCalculations = useMemo(() => {
     return logs.map((log) => {

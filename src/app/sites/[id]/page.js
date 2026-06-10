@@ -26,33 +26,11 @@ const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #06B6D4, #0891B2)',
 ];
 
-const DEMO_TIME_LOGS = [
-  { id: '1', date: '2026-05-28', worker: 'Andrei Popescu', hours: 8, timeRange: '08:00 - 16:00', description: 'Cablare panou principal și conexiuni' },
-  { id: '2', date: '2026-05-28', worker: 'Maria Ionescu', hours: 8, timeRange: '08:00 - 16:00', description: 'Verificare circuite prize și împământare' },
-  { id: '3', date: '2026-05-27', worker: 'Ion Munteanu', hours: 8, timeRange: '08:00 - 16:00', description: 'Trasare trasee cablu în tub protectie' },
-  { id: '4', date: '2026-05-27', worker: 'Vlad Gheorghiu', hours: 8, timeRange: '08:00 - 16:00', description: 'Montaj doze aparat și doze legătură' },
-  { id: '5', date: '2026-05-26', worker: 'Andrei Popescu', hours: 6, timeRange: '09:00 - 15:00', description: 'Ședință progres și organizare șantier' },
-  { id: '6', date: '2026-05-26', worker: 'Maria Ionescu', hours: 8, timeRange: '08:00 - 16:00', description: 'Cablare circuite iluminat interior' },
-];
+const DEMO_TIME_LOGS = [];
 
-const DEMO_MATERIALS = [
-  { id: '1', name: 'Cablu NYM 3x2.5mm', category: 'Cabluri', qty: 500, unit: 'm', cost: 3.20 },
-  { id: '2', name: 'Întrerupător automat 16A', category: 'Protecție', qty: 24, unit: 'buc', cost: 25.00 },
-  { id: '3', name: 'Priză simplă Legrand', category: 'Prize', qty: 45, unit: 'buc', cost: 18.00 },
-  { id: '4', name: 'Tub PVC 20mm', category: 'Tuburi', qty: 200, unit: 'm', cost: 2.50 },
-  { id: '5', name: 'Doză de legătură', category: 'Doze', qty: 60, unit: 'buc', cost: 4.00 },
-  { id: '6', name: 'Tablou electric 24 module', category: 'Tablouri', qty: 2, unit: 'buc', cost: 180.00 },
-  { id: '7', name: 'Șină DIN', category: 'Accesorii', qty: 8, unit: 'buc', cost: 12.00 },
-  { id: '8', name: 'Clemă Wago 3 căi', category: 'Conectică', qty: 100, unit: 'buc', cost: 2.80 },
-];
+const DEMO_MATERIALS = [];
 
-const DEMO_TOOLS = [
-  { id: '1', name: 'Multimetru Fluke 87V', serial: 'FLK-87V-102', status: 'available', assignedTo: '-' },
-  { id: '2', name: 'Bormaşină Makita DHP482', serial: 'MKT-DHP482', status: 'in_use', assignedTo: 'Andrei Popescu' },
-  { id: '3', name: 'Tester cablu NetCat Pro', serial: 'TST-NET-450', status: 'available', assignedTo: '-' },
-  { id: '4', name: 'Nivel laser Bosch GLL 3-80', serial: 'BSH-GLL3-80', status: 'in_use', assignedTo: 'Maria Ionescu' },
-  { id: '5', name: 'Clește sertizare Knipex', serial: 'CRM-KNIPEX', status: 'available', assignedTo: '-' },
-];
+const DEMO_TOOLS = [];
 
 export default function SiteDetailPage() {
   const params = useParams();
@@ -391,15 +369,23 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_TIME_LOGS.map((log) => (
-                    <tr key={log.id}>
-                      <td className="font-semibold">{log.date}</td>
-                      <td>{log.worker}</td>
-                      <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{log.hours}</td>
-                      <td className="text-muted">{log.timeRange}</td>
-                      <td>{log.description}</td>
+                  {DEMO_TIME_LOGS.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
+                        No time logs recorded yet.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    DEMO_TIME_LOGS.map((log) => (
+                      <tr key={log.id}>
+                        <td className="font-semibold">{log.date}</td>
+                        <td>{log.worker}</td>
+                        <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{log.hours}</td>
+                        <td className="text-muted">{log.timeRange}</td>
+                        <td>{log.description}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -429,26 +415,36 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_MATERIALS.map((item) => (
-                    <tr key={item.id}>
-                      <td className="font-semibold">{item.name}</td>
-                      <td>
-                        <span className="badge badge-neutral">{item.category}</span>
-                      </td>
-                      <td className="font-semibold">{item.qty}</td>
-                      <td className="text-muted">{item.unit}</td>
-                      <td>{formatCurrency(item.cost)} RON</td>
-                      <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>
-                        {formatCurrency(item.qty * item.cost)} RON
+                  {DEMO_MATERIALS.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
+                        No materials added yet.
                       </td>
                     </tr>
-                  ))}
-                  <tr style={{ background: 'var(--clr-bg-elevated)', borderTop: '2px solid var(--clr-primary)' }}>
-                    <td colSpan="5" className="font-bold" style={{ textAlign: 'right' }}>Total:</td>
-                    <td className="font-bold" style={{ color: 'var(--clr-primary)', fontSize: 'var(--fs-md)' }}>
-                      {formatCurrency(totalMaterialCosts)} RON
-                    </td>
-                  </tr>
+                  ) : (
+                    <>
+                      {DEMO_MATERIALS.map((item) => (
+                        <tr key={item.id}>
+                          <td className="font-semibold">{item.name}</td>
+                          <td>
+                            <span className="badge badge-neutral">{item.category}</span>
+                          </td>
+                          <td className="font-semibold">{item.qty}</td>
+                          <td className="text-muted">{item.unit}</td>
+                          <td>{formatCurrency(item.cost)} RON</td>
+                          <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>
+                            {formatCurrency(item.qty * item.cost)} RON
+                          </td>
+                        </tr>
+                      ))}
+                      <tr style={{ background: 'var(--clr-bg-elevated)', borderTop: '2px solid var(--clr-primary)' }}>
+                        <td colSpan="5" className="font-bold" style={{ textAlign: 'right' }}>Total:</td>
+                        <td className="font-bold" style={{ color: 'var(--clr-primary)', fontSize: 'var(--fs-md)' }}>
+                          {formatCurrency(totalMaterialCosts)} RON
+                        </td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -476,18 +472,26 @@ export default function SiteDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DEMO_TOOLS.map((tool) => (
-                    <tr key={tool.id}>
-                      <td className="font-semibold">{tool.name}</td>
-                      <td className="text-muted">{tool.serial}</td>
-                      <td>
-                        <span className={`badge ${tool.status === 'available' ? 'badge-success' : 'badge-warning'}`}>
-                          {tool.status === 'available' ? 'Available' : 'In Use'}
-                        </span>
+                  {DEMO_TOOLS.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
+                        No tools assigned yet.
                       </td>
-                      <td className={tool.assignedTo !== '-' ? 'font-semibold' : 'text-muted'}>{tool.assignedTo}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    DEMO_TOOLS.map((tool) => (
+                      <tr key={tool.id}>
+                        <td className="font-semibold">{tool.name}</td>
+                        <td className="text-muted">{tool.serial}</td>
+                        <td>
+                          <span className={`badge ${tool.status === 'available' ? 'badge-success' : 'badge-warning'}`}>
+                            {tool.status === 'available' ? 'Available' : 'In Use'}
+                          </span>
+                        </td>
+                        <td className={tool.assignedTo !== '-' ? 'font-semibold' : 'text-muted'}>{tool.assignedTo}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

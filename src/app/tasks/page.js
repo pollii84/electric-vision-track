@@ -6,25 +6,11 @@ import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/contexts/ToastContext';
 
-const DEMO_WORKERS = [
-  { id: '1', name: 'Andrei Popescu' },
-  { id: '2', name: 'Maria Ionescu' },
-  { id: '3', name: 'Ion Munteanu' },
-  { id: '4', name: 'Elena Dragomir' },
-];
+const DEMO_WORKERS = [];
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', drawingId: 'd1', drawingName: 'Electrical Floor Plan.dwg' },
-  { id: '2', name: 'Bloc Florești - Et. 3', drawingId: 'd4', drawingName: 'Lighting Schematic.dwg' },
-  { id: '3', name: 'Birouri Sigma Center', drawingId: 'd7', drawingName: 'Server Room Power Backup.pdf' }
-];
+const DEMO_SITES = [];
 
-const INITIAL_TASKS = [
-  { id: '1', title: 'Conduit installation ground floor', siteId: '1', siteName: 'Vila Popescu', workerName: 'Andrei Popescu', priority: 'high', dueDate: '2026-06-03', status: 'in_progress', desc: 'Lay down conduit lines along ground floor walls as per Perm-0021 permit.', drawingId: 'd1', drawingName: 'Electrical Floor Plan.dwg', photos: [], changeOrders: [] },
-  { id: '2', title: 'Switchboard wire labeling', siteId: '2', siteName: 'Bloc Florești - Et. 3', workerName: 'Ion Munteanu', priority: 'medium', dueDate: '2026-06-05', status: 'todo', desc: 'Perform color coding and labeling for three main phase cables.', drawingId: 'd4', drawingName: 'Lighting Schematic.dwg', photos: [], changeOrders: [] },
-  { id: '3', title: 'Power outlet safety test', siteId: '3', siteName: 'Birouri Sigma Center', workerName: 'Elena Dragomir', priority: 'low', dueDate: '2026-06-08', status: 'quality_review', desc: 'Run insulation and loop impedance diagnostic checks.', drawingId: 'd7', drawingName: 'Server Room Power Backup.pdf', photos: [], changeOrders: [] },
-  { id: '4', title: 'Smart dimmer configuration', siteId: '1', siteName: 'Vila Popescu', workerName: 'Maria Ionescu', priority: 'high', dueDate: '2026-06-01', status: 'completed', desc: 'Calibrate wireless modules on Dim-99 models.', drawingId: 'd3', drawingName: 'Dimmer Controls Layout.png', photos: [], changeOrders: [] }
-];
+const INITIAL_TASKS = [];
 
 const COLUMNS = ['todo', 'in_progress', 'quality_review', 'completed'];
 
@@ -84,6 +70,8 @@ export default function TasksPage() {
 
     const selectedSite = DEMO_SITES[Number(formData.siteIndex)];
     const selectedWorker = DEMO_WORKERS[Number(formData.workerIndex)];
+    if (!selectedSite || !selectedWorker) return;
+
 
     const newTask = {
       id: String(Date.now()),

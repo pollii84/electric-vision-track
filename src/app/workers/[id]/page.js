@@ -8,19 +8,9 @@ import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc } from '@/lib/firestore';
 
-const DEMO_ASSIGNED_SITES = [
-  { id: 's1', name: 'Bloc A7 — Residential Complex', role: 'Electrician', since: '2026-01-15' },
-  { id: 's2', name: 'Mall Promenada — Commercial Fit-out', role: 'Team Lead', since: '2026-03-01' },
-  { id: 's3', name: 'Office Tower B3 — Wiring', role: 'Electrician', since: '2026-04-10' },
-];
+const DEMO_ASSIGNED_SITES = [];
 
-const DEMO_TIME_LOGS = [
-  { id: 't1', date: '2026-05-30', site: 'Bloc A7 — Residential Complex', hours: 8, description: 'Panel installation — Floor 4' },
-  { id: 't2', date: '2026-05-29', site: 'Mall Promenada — Commercial Fit-out', hours: 7.5, description: 'Cable tray routing — Zone C' },
-  { id: 't3', date: '2026-05-28', site: 'Office Tower B3 — Wiring', hours: 8, description: 'Conduit bending and installation' },
-  { id: 't4', date: '2026-05-27', site: 'Bloc A7 — Residential Complex', hours: 6, description: 'Switchboard wiring — Floor 3' },
-  { id: 't5', date: '2026-05-26', site: 'Mall Promenada — Commercial Fit-out', hours: 8.5, description: 'Emergency lighting test run' },
-];
+const DEMO_TIME_LOGS = [];
 
 const EXPERIENCE_LEVELS = [
   'manager',
@@ -153,8 +143,8 @@ export default function WorkerDetailPage() {
   }
 
   const initials = `${worker.firstName?.[0] || ''}${worker.lastName?.[0] || ''}`.toUpperCase();
-  const demoHours = 168;
-  const demoSitesCount = 3;
+  const demoHours = DEMO_TIME_LOGS.reduce((sum, log) => sum + log.hours, 0);
+  const demoSitesCount = DEMO_ASSIGNED_SITES.length;
   const demoEarned = (worker.hourlyRate || 0) * demoHours;
 
   return (
@@ -304,31 +294,45 @@ export default function WorkerDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {DEMO_ASSIGNED_SITES.map((site) => (
-                <tr key={site.id}>
-                  <td className="font-semibold">{site.name}</td>
-                  <td>
-                    <span className="badge badge-accent">{site.role}</span>
+              {DEMO_ASSIGNED_SITES.length === 0 ? (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
+                    No sites assigned yet.
                   </td>
-                  <td className="text-muted">{site.since}</td>
                 </tr>
-              ))}
+              ) : (
+                DEMO_ASSIGNED_SITES.map((site) => (
+                  <tr key={site.id}>
+                    <td className="font-semibold">{site.name}</td>
+                    <td>
+                      <span className="badge badge-accent">{site.role}</span>
+                    </td>
+                    <td className="text-muted">{site.since}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         <div className="mobile-card-list mobile-only" style={{ padding: '0 var(--sp-md) var(--sp-md)' }}>
-          {DEMO_ASSIGNED_SITES.map((site) => (
-            <div key={site.id} className="mobile-card-item">
-              <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ color: 'var(--clr-text)' }}>{site.name}</div>
-                <span className="badge badge-accent">{site.role}</span>
-              </div>
-              <div className="mobile-card-row">
-                <span className="mobile-card-label">{t('workers.detail.since')}</span>
-                <span className="mobile-card-value">{site.since}</span>
-              </div>
+          {DEMO_ASSIGNED_SITES.length === 0 ? (
+            <div className="text-muted text-sm" style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
+              No sites assigned yet.
             </div>
-          ))}
+          ) : (
+            DEMO_ASSIGNED_SITES.map((site) => (
+              <div key={site.id} className="mobile-card-item">
+                <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ color: 'var(--clr-text)' }}>{site.name}</div>
+                  <span className="badge badge-accent">{site.role}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">{t('workers.detail.since')}</span>
+                  <span className="mobile-card-value">{site.since}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -348,39 +352,53 @@ export default function WorkerDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {DEMO_TIME_LOGS.map((log) => (
-                <tr key={log.id}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{log.date}</td>
-                  <td className="font-semibold">{log.site}</td>
-                  <td>
-                    <span className="font-semibold" style={{ color: 'var(--clr-primary)' }}>
-                      {log.hours}h
-                    </span>
+              {DEMO_TIME_LOGS.length === 0 ? (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
+                    No time logs recorded yet.
                   </td>
-                  <td className="text-muted">{log.description}</td>
                 </tr>
-              ))}
+              ) : (
+                DEMO_TIME_LOGS.map((log) => (
+                  <tr key={log.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{log.date}</td>
+                    <td className="font-semibold">{log.site}</td>
+                    <td>
+                      <span className="font-semibold" style={{ color: 'var(--clr-primary)' }}>
+                        {log.hours}h
+                      </span>
+                    </td>
+                    <td className="text-muted">{log.description}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         <div className="mobile-card-list mobile-only" style={{ padding: '0 var(--sp-md) var(--sp-md)' }}>
-          {DEMO_TIME_LOGS.map((log) => (
-            <div key={log.id} className="mobile-card-item">
-              <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ color: 'var(--clr-text)' }}>{log.site}</div>
-                <div style={{ color: 'var(--clr-primary)' }}>{log.hours}h</div>
-              </div>
-              <div className="mobile-card-row">
-                <span className="mobile-card-label">{t('workers.detail.date')}</span>
-                <span className="mobile-card-value">{log.date}</span>
-              </div>
-              {log.description && (
-                <div style={{ marginTop: '8px', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', background: 'rgba(255, 255, 255, 0.02)', padding: '6px 8px', borderRadius: '4px' }}>
-                  {log.description}
-                </div>
-              )}
+          {DEMO_TIME_LOGS.length === 0 ? (
+            <div className="text-muted text-sm" style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
+              No time logs recorded yet.
             </div>
-          ))}
+          ) : (
+            DEMO_TIME_LOGS.map((log) => (
+              <div key={log.id} className="mobile-card-item">
+                <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ color: 'var(--clr-text)' }}>{log.site}</div>
+                  <div style={{ color: 'var(--clr-primary)' }}>{log.hours}h</div>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">{t('workers.detail.date')}</span>
+                  <span className="mobile-card-value">{log.date}</span>
+                </div>
+                {log.description && (
+                  <div style={{ marginTop: '8px', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', background: 'rgba(255, 255, 255, 0.02)', padding: '6px 8px', borderRadius: '4px' }}>
+                    {log.description}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
 

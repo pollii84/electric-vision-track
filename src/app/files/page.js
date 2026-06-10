@@ -4,24 +4,9 @@ import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', clientName: 'Popescu Ion' },
-  { id: '2', name: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL' },
-  { id: '3', name: 'Birouri Sigma Center', clientName: 'Sigma Development' },
-];
+const DEMO_SITES = [];
 
-const INITIAL_FILES = [
-  { id: '1', siteId: '1', name: 'electrical_scheme_ground_floor.pdf', category: 'plans', date: '2026-03-25', size: '2.4 MB', tags: ['schematics', 'ground-floor'], shared: true },
-  { id: '2', siteId: '1', name: 'cable_routing_Vila_Popescu.dwg', category: 'plans', date: '2026-04-02', size: '8.1 MB', tags: ['cabling', 'dwg'], shared: false },
-  { id: '3', siteId: '1', name: 'construction_permit_cluj.pdf', category: 'permits', date: '2026-03-12', size: '1.8 MB', tags: ['permit', 'official'], shared: true },
-  { id: '4', siteId: '1', name: 'transformer_quality_certificate.pdf', category: 'certificates', date: '2026-05-18', size: '0.95 MB', tags: ['transformer', 'certificate'], shared: true },
-  
-  { id: '5', siteId: '2', name: 'floor3_breaker_layout.pdf', category: 'plans', date: '2026-04-10', size: '1.5 MB', tags: ['breakers', 'floor-3'], shared: true },
-  { id: '6', siteId: '2', name: 'milestone1_cabling_photo.jpg', category: 'photos', date: '2026-05-02', size: '4.2 MB', tags: ['milestone-1', 'cabling'], shared: false },
-  
-  { id: '7', siteId: '3', name: 'sigma_center_hvac_cabling.dwg', category: 'plans', date: '2026-05-15', size: '12.4 MB', tags: ['hvac', 'dwg'], shared: true },
-  { id: '8', siteId: '3', name: 'electrical_work_permit.pdf', category: 'permits', date: '2026-05-20', size: '2.1 MB', tags: ['permit', 'work-authorization'], shared: true },
-];
+const INITIAL_FILES = [];
 
 const FOLDER_CATEGORIES = ['all', 'plans', 'permits', 'certificates', 'photos'];
 
@@ -36,7 +21,7 @@ const INITIAL_FORM = {
 export default function FilesPage() {
   const { t } = useI18n();
 
-  const [selectedSiteId, setSelectedSiteId] = useState('1');
+  const [selectedSiteId, setSelectedSiteId] = useState(DEMO_SITES.length > 0 ? DEMO_SITES[0].id : '');
   const [activeFolder, setActiveFolder] = useState('all');
   const [files, setFiles] = useState(INITIAL_FILES);
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +104,9 @@ export default function FilesPage() {
               setActiveFolder('all');
             }}
           >
+            {DEMO_SITES.length === 0 && (
+              <option value="">No sites available</option>
+            )}
             {DEMO_SITES.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.name} — {site.clientName}

@@ -5,19 +5,9 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_QUOTES = [
-  { id: '1', quoteNumber: 'QT-2026-0001', siteName: 'Vila Popescu', clientName: 'Popescu Ion', totalAmount: 16866, status: 'accepted', expiryDate: '2026-06-15' },
-  { id: '2', quoteNumber: 'QT-2026-0002', siteName: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL', totalAmount: 11090, status: 'draft', expiryDate: '2026-07-01' },
-  { id: '3', quoteNumber: 'QT-2026-0003', siteName: 'Birouri Sigma Center', clientName: 'Sigma Development', totalAmount: 28500, status: 'sent', expiryDate: '2026-06-30' },
-  { id: '4', quoteNumber: 'QT-2026-0004', siteName: 'Hotel Panoramic Renovare', clientName: 'SC Turism SA', totalAmount: 48900, status: 'converted', expiryDate: '2026-05-15' },
-];
+const DEMO_QUOTES = [];
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', clientName: 'Popescu Ion' },
-  { id: '2', name: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL' },
-  { id: '3', name: 'Birouri Sigma Center', clientName: 'Sigma Development' },
-  { id: '5', name: 'Hotel Panoramic Renovare', clientName: 'SC Turism SA' },
-];
+const DEMO_SITES = [];
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'accepted', 'rejected', 'converted'];
 
@@ -30,7 +20,7 @@ const STATUS_BADGES = {
 };
 
 const INITIAL_FORM = {
-  quoteNumber: 'QT-2026-0005',
+  quoteNumber: '',
   siteIndex: '0',
   expiryDate: '',
 };
@@ -282,6 +272,9 @@ export default function QuotesPage() {
                   value={formData.siteIndex}
                   onChange={(e) => handleFormChange('siteIndex', e.target.value)}
                 >
+                  {DEMO_SITES.length === 0 && (
+                    <option value="" disabled>No sites available</option>
+                  )}
                   {DEMO_SITES.map((site, index) => (
                     <option key={site.id} value={index}>
                       {site.name} — {site.clientName}

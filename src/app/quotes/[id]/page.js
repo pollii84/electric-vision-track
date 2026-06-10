@@ -6,12 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_QUOTES = [
-  { id: '1', quoteNumber: 'QT-2026-0001', siteName: 'Vila Popescu', clientName: 'Popescu Ion', totalAmount: 16866, status: 'accepted', expiryDate: '2026-06-15' },
-  { id: '2', quoteNumber: 'QT-2026-0002', siteName: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL', totalAmount: 11090, status: 'draft', expiryDate: '2026-07-01' },
-  { id: '3', quoteNumber: 'QT-2026-0003', siteName: 'Birouri Sigma Center', clientName: 'Sigma Development', totalAmount: 28500, status: 'sent', expiryDate: '2026-06-30' },
-  { id: '4', quoteNumber: 'QT-2026-0004', siteName: 'Hotel Panoramic Renovare', clientName: 'SC Turism SA', totalAmount: 48900, status: 'converted', expiryDate: '2026-05-15' },
-];
+const DEMO_QUOTES = [];
 
 const PRESET_MATERIALS = [
   { name: 'Cablu NYM 3x2.5mm', category: 'Cabluri', unit: 'm', cost: 3.20 },
@@ -26,18 +21,9 @@ const PRESET_MATERIALS = [
   { name: 'Clemă Wago 3 căi', category: 'Conectică', unit: 'buc', cost: 2.80 },
 ];
 
-const INITIAL_MATERIAL_ITEMS = [
-  { id: '1', name: 'Cablu NYM 3x2.5mm', category: 'Cabluri', qty: 500, unit: 'm', cost: 3.20 },
-  { id: '2', name: 'Întrerupător automat 16A', category: 'Protecție', qty: 24, unit: 'buc', cost: 25.00 },
-  { id: '3', name: 'Priză simplă Legrand', category: 'Prize', qty: 45, unit: 'buc', cost: 18.00 },
-  { id: '4', name: 'Tub PVC 20mm', category: 'Tuburi', qty: 200, unit: 'm', cost: 2.50 },
-];
+const INITIAL_MATERIAL_ITEMS = [];
 
-const INITIAL_LABOR_ITEMS = [
-  { id: '1', description: 'Cablare trasee și trasee de protecție', hours: 80, rate: 65 },
-  { id: '2', description: 'Instalare și conectare tablouri electrice', hours: 24, rate: 75 },
-  { id: '3', description: 'Montaj aparataj (prize, întrerupătoare)', hours: 32, rate: 60 },
-];
+const INITIAL_LABOR_ITEMS = [];
 
 const STATUS_BADGES = {
   draft: 'badge-neutral',
@@ -54,7 +40,7 @@ export default function QuoteDetailPage() {
 
   const quoteId = params.id;
   const quote = useMemo(() => {
-    return DEMO_QUOTES.find((q) => q.id === quoteId) || DEMO_QUOTES[0];
+    return DEMO_QUOTES.find((q) => q.id === quoteId) || { id: quoteId, quoteNumber: `QT-${quoteId || 'NEW'}`, siteName: '', clientName: '', totalAmount: 0, status: 'draft', expiryDate: '' };
   }, [quoteId]);
 
   const [activeTab, setActiveTab] = useState('materials');

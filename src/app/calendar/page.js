@@ -4,14 +4,7 @@ import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_EVENTS = [
-  { id: '1', title: 'Vila Popescu - Project Kickoff', date: '2026-06-01', type: 'milestone', site: 'Vila Popescu', icon: '🏗️', desc: 'Mobilization of wiring materials and site manager safety briefing.' },
-  { id: '2', title: 'Andrei Popescu - Vila Allocation', date: '2026-06-02', type: 'allocation', site: 'Vila Popescu', worker: 'Andrei Popescu', icon: '👷', desc: 'Conduit laying and ground floor power routing.' },
-  { id: '3', title: 'Fluke Tester Loop Calibration', date: '2026-06-03', type: 'maintenance', tool: 'Fluke MicroScanner', technician: 'Elena Dragomir', icon: '🔧', desc: 'Loop impedance calibration and sensor calibration test.' },
-  { id: '4', title: 'Maria Ionescu - Sigma Allocation', date: '2026-06-04', type: 'allocation', site: 'Birouri Sigma Center', worker: 'Maria Ionescu', icon: '👷', desc: 'Switchboard board breaker mounting and routing lines.' },
-  { id: '5', title: 'Bloc Florești - Handover Target', date: '2026-06-05', type: 'milestone', site: 'Bloc Florești - Et. 3', icon: '🏗️', desc: 'Formal client walkthrough inspection and quality safety signature.' },
-  { id: '6', title: 'Honda Generator Oil Inspection', date: '2026-06-06', type: 'maintenance', tool: 'Honda EU22i Generator', technician: 'Vlad Gheorghiu', icon: '🔧', desc: 'Engine oil calibration change and carbon filter cleaning.' }
-];
+const DEMO_EVENTS = [];
 
 const WEEK_DAYS = [
   { dateStr: '2026-06-01', dayNum: '1', nameEn: 'Monday', nameRo: 'Luni' },

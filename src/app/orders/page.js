@@ -5,13 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_ORDERS = [
-  { id: '1', orderNumber: 'ORD-2026-0001', siteName: 'Vila Popescu', supplierName: 'Electro Global', costPrice: 3339, targetMargin: 25, status: 'delivered', phase: 'Phase 1: Cabling' },
-  { id: '2', orderNumber: 'ORD-2026-0002', siteName: 'Bloc Florești - Et. 3', supplierName: 'Electro Global', costPrice: 1940, targetMargin: 20, status: 'ordered', phase: 'Phase 1: Cabling' },
-  { id: '3', orderNumber: 'ORD-2026-0003', siteName: 'Birouri Sigma Center', supplierName: 'Elmark Romania', costPrice: 4780, targetMargin: 30, status: 'draft', phase: 'Phase 2: Distribution Boards' },
-];
+const DEMO_ORDERS = [];
 
-const SITES_LIST = ['Vila Popescu', 'Bloc Florești - Et. 3', 'Birouri Sigma Center', 'Hotel Panoramic Renovare'];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot } from '@/lib/firestore';
+
 const SUPPLIERS_LIST = ['Electro Global', 'Elmark Romania', 'Schneider Direct'];
 const PHASES_LIST = ['Phase 1: Cabling', 'Phase 2: Distribution Boards', 'Phase 3: Fixtures & Apparata'];
 
@@ -24,22 +22,32 @@ const STATUS_BADGES = {
 };
 
 const INITIAL_FORM = {
-  orderNumber: 'ORD-2026-0004',
-  siteName: 'Vila Popescu',
-  supplierName: 'Electro Global',
+  orderNumber: '',
+  siteName: '',
+  supplierName: '',
   costPrice: '',
   targetMargin: 25,
-  phase: 'Phase 1: Cabling',
+  phase: '',
 };
 
 function OrdersContent() {
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
   const [orders, setOrders] = useState(DEMO_ORDERS);
+  const [sites, setSites] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsubscribe = onTenantCollectionSnapshot(tenantId, 'sites', (data) => {
+      setSites(data || []);
+    });
+    return () => unsubscribe();
+  }, [tenantId]);
 
   // If redirected from Offers page with parameters, trigger adding a new prefilled order
   useEffect(() => {
@@ -147,6 +155,13 @@ function OrdersContent() {
               </tr>
             </thead>
             <tbody>
+              {orders.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="text-muted" style={{ textAlign: 'center', padding: '40px' }}>
+                    No orders yet. Create your first order to get started.
+                  </td>
+                </tr>
+              )}
               {orders.map((order) => {
                 const saleVal = calculateSaleValue(order.costPrice, order.targetMargin);
                 return (
@@ -361,8 +376,9 @@ function OrdersContent() {
                   value={formData.siteName}
                   onChange={(e) => handleFormChange('siteName', e.target.value)}
                 >
-                  {SITES_LIST.map((site) => (
-                    <option key={site} value={site}>{site}</option>
+                  <option value="">-- Select Site --</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.name}>{site.name}</option>
                   ))}
                 </select>
               </div>

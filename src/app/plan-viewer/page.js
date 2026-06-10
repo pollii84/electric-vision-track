@@ -5,61 +5,22 @@ import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/contexts/ToastContext';
 
-// Seed demo sites & drawings
-const SITE_DRAWINGS = {
-  '1': [
-    { id: 'd1', name: 'Electrical Floor Plan.dwg', type: 'dwg', src: '/images/floor_plan_dwg.png' },
-    { id: 'd2', name: 'Main Distribution Board Schema.pdf', type: 'pdf', src: '/images/dist_board_pdf.png' },
-    { id: 'd3', name: 'Dimmer Controls Layout.png', type: 'png', src: '/images/dimmer_png.png' }
-  ],
-  '2': [
-    { id: 'd4', name: 'Lighting Schematic.dwg', type: 'dwg', src: '/images/lighting_dwg.png' },
-    { id: 'd5', name: 'Power Grid Layout.pdf', type: 'pdf', src: '/images/grid_pdf.png' }
-  ],
-  '3': [
-    { id: 'd6', name: 'HVAC Wiring Schematic.dwg', type: 'dwg', src: '/images/hvac_dwg.png' },
-    { id: 'd7', name: 'Server Room Power Backup.pdf', type: 'pdf', src: '/images/server_pdf.png' },
-    { id: 'd8', name: 'Fire Alarm System Plan.png', type: 'png', src: '/images/alarm_png.png' }
-  ]
-};
+// Site drawings mapping (populated from Firestore in production)
+const SITE_DRAWINGS = {};
 
-const INITIAL_PINS = [
-  { id: 'pin-1', drawingId: 'd1', taskId: '1', x: 35.4, y: 45.2 },
-  { id: 'pin-2', drawingId: 'd4', taskId: '2', x: 60.1, y: 32.8 },
-  { id: 'pin-3', drawingId: 'd7', taskId: '3', x: 48.5, y: 55.0 }
-];
+const INITIAL_PINS = [];
 
-// Tasks seeded from initial demo task logs
-const INITIAL_TASKS = [
-  { id: '1', title: 'Conduit installation ground floor', siteId: '1', siteName: 'Vila Popescu', workerName: 'Andrei Popescu', priority: 'high', dueDate: '2026-06-03', status: 'in_progress', desc: 'Lay down conduit lines along ground floor walls as per Perm-0021 permit.', photos: [], changeOrders: [], pinCoords: { x: 35.4, y: 45.2 } },
-  { id: '2', title: 'Switchboard wire labeling', siteId: '2', siteName: 'Bloc Florești - Et. 3', workerName: 'Ion Munteanu', priority: 'medium', dueDate: '2026-06-05', status: 'todo', desc: 'Perform color coding and labeling for three main phase cables.', photos: [], changeOrders: [], pinCoords: { x: 60.1, y: 32.8 } },
-  { id: '3', title: 'Power outlet safety test', siteId: '3', siteName: 'Birouri Sigma Center', workerName: 'Elena Dragomir', priority: 'low', dueDate: '2026-06-08', status: 'quality_review', desc: 'Run insulation and loop impedance diagnostic checks.', photos: [], changeOrders: [], pinCoords: { x: 48.5, y: 55.0 } },
-  { id: '4', title: 'Smart dimmer configuration', siteId: '1', siteName: 'Vila Popescu', workerName: 'Maria Ionescu', priority: 'high', dueDate: '2026-06-01', status: 'completed', desc: 'Calibrate wireless modules on Dim-99 models.', photos: [], changeOrders: [] }
-];
+const INITIAL_TASKS = [];
 
-// Site documents and permits
-const SITE_DOCUMENTS = {
-  '1': [
-    { name: 'ANRE Work Authorization #220-41', date: '2026-05-15', status: 'Approved' },
-    { name: 'Grid Interconnection Permit IP-901', date: '2026-05-20', status: 'Active' },
-    { name: 'Dimmer Installation Guide V2.pdf', date: '2026-05-28', status: 'Reference' }
-  ],
-  '2': [
-    { name: 'Structural Load Clearance', date: '2026-05-10', status: 'Approved' },
-    { name: 'Fire Safety Plan Cert #41', date: '2026-05-12', status: 'Approved' }
-  ],
-  '3': [
-    { name: 'Sigma Center Data Room Access permit', date: '2026-05-22', status: 'Approved' },
-    { name: 'HVAC Breaker Grid Map.xlsx', date: '2026-05-25', status: 'Reference' }
-  ]
-};
+// Site documents and permits (populated from Firestore in production)
+const SITE_DOCUMENTS = {};
 
 export default function PlanViewerPage() {
   const { t } = useI18n();
   const { addToast } = useToast();
 
-  const [selectedSiteId, setSelectedSiteId] = useState('1');
-  const [selectedDrawing, setSelectedDrawing] = useState(SITE_DRAWINGS['1'][0]);
+  const [selectedSiteId, setSelectedSiteId] = useState('');
+  const [selectedDrawing, setSelectedDrawing] = useState(null);
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [pins, setPins] = useState(INITIAL_PINS);
   const [selectedPin, setSelectedPin] = useState(null);
@@ -95,7 +56,8 @@ export default function PlanViewerPage() {
 
   // Sync active site draw selection
   useEffect(() => {
-    setSelectedDrawing(SITE_DRAWINGS[selectedSiteId][0]);
+    const drawings = SITE_DRAWINGS[selectedSiteId] || [];
+    setSelectedDrawing(drawings.length > 0 ? drawings[0] : null);
     setSelectedPin(null);
     setDrawerOpen(false);
     setZoom(1);
@@ -295,15 +257,19 @@ export default function PlanViewerPage() {
             className="form-select"
             style={{ minWidth: 160 }}
           >
-            <option value="1">🏗️ Vila Popescu</option>
-            <option value="2">🏗️ Bloc Florești - Et. 3</option>
-            <option value="3">🏗️ Birouri Sigma Center</option>
+            {Object.keys(SITE_DRAWINGS).length === 0 && (
+              <option value="">No sites available</option>
+            )}
+            {Object.keys(SITE_DRAWINGS).map((siteId) => (
+              <option key={siteId} value={siteId}>🏗️ Site {siteId}</option>
+            ))}
           </select>
 
           <select
-            value={selectedDrawing.id}
+            value={selectedDrawing?.id || ''}
             onChange={(e) => {
-              const d = SITE_DRAWINGS[selectedSiteId].find((dw) => dw.id === e.target.value);
+              const drawings = SITE_DRAWINGS[selectedSiteId] || [];
+              const d = drawings.find((dw) => dw.id === e.target.value);
               if (d) {
                 setSelectedDrawing(d);
                 setSelectedPin(null);
@@ -313,7 +279,10 @@ export default function PlanViewerPage() {
             className="form-select"
             style={{ minWidth: 200 }}
           >
-            {SITE_DRAWINGS[selectedSiteId].map((dw) => (
+            {(!SITE_DRAWINGS[selectedSiteId] || SITE_DRAWINGS[selectedSiteId].length === 0) && (
+              <option value="">No drawings available</option>
+            )}
+            {(SITE_DRAWINGS[selectedSiteId] || []).map((dw) => (
               <option key={dw.id} value={dw.id}>
                 {dw.name}
               </option>
@@ -422,7 +391,7 @@ export default function PlanViewerPage() {
             }}
           >
             {/* 1. CAD DWG Simulator Vector Layer */}
-            {selectedDrawing.type === 'dwg' && (
+            {selectedDrawing?.type === 'dwg' && (
               <div style={{
                 width: '90%',
                 height: '90%',
@@ -470,7 +439,7 @@ export default function PlanViewerPage() {
             )}
 
             {/* 2. PDF Wiring Diagram Backdrop */}
-            {selectedDrawing.type === 'pdf' && (
+            {selectedDrawing?.type === 'pdf' && (
               <div style={{
                 width: '85%',
                 height: '85%',
@@ -508,7 +477,7 @@ export default function PlanViewerPage() {
             )}
 
             {/* 3. PNG Image Floor Plan Backdrop */}
-            {selectedDrawing.type === 'png' && (
+            {selectedDrawing?.type === 'png' && (
               <div style={{
                 width: '80%',
                 height: '80%',
@@ -538,7 +507,7 @@ export default function PlanViewerPage() {
 
             {/* Render overlay pins on blueprint */}
             {pins
-              .filter((p) => p.drawingId === selectedDrawing.id)
+              .filter((p) => p.drawingId === selectedDrawing?.id)
               .map((pin) => {
                 const task = tasks.find((t) => t.id === pin.taskId);
                 const isSelected = selectedPin === pin.id;
@@ -592,34 +561,38 @@ export default function PlanViewerPage() {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {SITE_DRAWINGS[selectedSiteId].map((doc) => (
-                <div
-                  key={doc.id}
-                  onClick={() => {
-                    setSelectedDrawing(doc);
-                    setSelectedPin(null);
-                    setDrawerOpen(false);
-                  }}
-                  className={`clickable`}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid ' + (selectedDrawing.id === doc.id ? 'var(--clr-primary)' : 'var(--clr-border)'),
-                    background: selectedDrawing.id === doc.id ? 'var(--clr-primary-subtle)' : 'rgba(255, 255, 255, 0.02)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <span className="font-semibold text-sm" style={{ color: selectedDrawing.id === doc.id ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
-                    {doc.name}
-                  </span>
-                  <span style={{ fontSize: '10px', color: 'var(--clr-text-muted)' }}>
-                    {doc.type === 'dwg' ? t('planViewer.docTypeDwg') : doc.type === 'pdf' ? t('planViewer.docTypePdf') : t('planViewer.docTypePng')}
-                  </span>
-                </div>
-              ))}
+              {(!SITE_DRAWINGS[selectedSiteId] || SITE_DRAWINGS[selectedSiteId].length === 0) ? (
+                <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>No drawings available for this site.</p>
+              ) : (
+                SITE_DRAWINGS[selectedSiteId].map((doc) => (
+                  <div
+                    key={doc.id}
+                    onClick={() => {
+                      setSelectedDrawing(doc);
+                      setSelectedPin(null);
+                      setDrawerOpen(false);
+                    }}
+                    className={`clickable`}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid ' + (selectedDrawing?.id === doc.id ? 'var(--clr-primary)' : 'var(--clr-border)'),
+                      background: selectedDrawing?.id === doc.id ? 'var(--clr-primary-subtle)' : 'rgba(255, 255, 255, 0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span className="font-semibold text-sm" style={{ color: selectedDrawing?.id === doc.id ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                      {doc.name}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--clr-text-muted)' }}>
+                      {doc.type === 'dwg' ? t('planViewer.docTypeDwg') : doc.type === 'pdf' ? t('planViewer.docTypePdf') : t('planViewer.docTypePng')}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
 
             <hr style={{ border: 'none', borderTop: '1px solid var(--clr-border)', margin: '20px 0' }} />
@@ -629,17 +602,21 @@ export default function PlanViewerPage() {
               📜 Permits & Directives
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {SITE_DOCUMENTS[selectedSiteId]?.map((doc, idx) => (
-                <div key={idx} style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span className="font-medium">{doc.name}</span>
-                    <span className={`badge ${doc.status === 'Approved' || doc.status === 'Active' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
-                      {doc.status}
-                    </span>
+              {(!SITE_DOCUMENTS[selectedSiteId] || SITE_DOCUMENTS[selectedSiteId].length === 0) ? (
+                <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>No permits or documents for this site.</p>
+              ) : (
+                SITE_DOCUMENTS[selectedSiteId].map((doc, idx) => (
+                  <div key={idx} style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span className="font-medium">{doc.name}</span>
+                      <span className={`badge ${doc.status === 'Approved' || doc.status === 'Active' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: '8px', padding: '1px 4px' }}>
+                        {doc.status}
+                      </span>
+                    </div>
+                    <div style={{ color: 'var(--clr-text-muted)', fontSize: '9px' }}>Added: {doc.date}</div>
                   </div>
-                  <div style={{ color: 'var(--clr-text-muted)', fontSize: '9px' }}>Added: {doc.date}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

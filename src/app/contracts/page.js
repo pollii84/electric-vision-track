@@ -5,16 +5,9 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_CONTRACTS = [
-  { id: '1', contractNumber: 'CON-2026-0001', siteName: 'Vila Popescu', clientName: 'Popescu Ion', totalAmount: 16866, status: 'active', signedAt: '2026-03-20', ipLog: '192.168.1.100' },
-  { id: '2', contractNumber: 'CON-2026-0002', siteName: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL', totalAmount: 11090, status: 'pending_signature', signedAt: '-', ipLog: '-' },
-  { id: '3', contractNumber: 'CON-2026-0003', siteName: 'Birouri Sigma Center', clientName: 'Sigma Development', totalAmount: 28500, status: 'draft', signedAt: '-', ipLog: '-' },
-];
+const DEMO_CONTRACTS = [];
 
-const DEMO_ACCEPTED_QUOTES = [
-  { id: '1', quoteNumber: 'QT-2026-0001', siteName: 'Vila Popescu', clientName: 'Popescu Ion', totalAmount: 16866 },
-  { id: '3', quoteNumber: 'QT-2026-0003', siteName: 'Birouri Sigma Center', clientName: 'Sigma Development', totalAmount: 28500 },
-];
+const DEMO_ACCEPTED_QUOTES = [];
 
 const STATUS_FILTERS = ['all', 'draft', 'pending_signature', 'signed', 'active', 'completed'];
 
@@ -27,7 +20,7 @@ const STATUS_BADGES = {
 };
 
 const INITIAL_FORM = {
-  contractNumber: 'CON-2026-0004',
+  contractNumber: '',
   quoteIndex: '0',
 };
 
@@ -35,7 +28,8 @@ export default function ContractsPage() {
   const router = useRouter();
   const { t } = useI18n();
 
-  const [contracts, setContracts] = useState(DEMO_CONTRACTS);
+  const [contracts, setContracts] = useState([]);
+  const [acceptedQuotes] = useState(DEMO_ACCEPTED_QUOTES);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -70,7 +64,7 @@ export default function ContractsPage() {
   };
 
   const handleSave = () => {
-    const selectedQuote = DEMO_ACCEPTED_QUOTES[Number(formData.quoteIndex)];
+    const selectedQuote = acceptedQuotes[Number(formData.quoteIndex)];
     if (!selectedQuote || !formData.contractNumber.trim()) return;
 
     const newId = String(Date.now());
@@ -87,10 +81,7 @@ export default function ContractsPage() {
 
     setContracts((prev) => [newContract, ...prev]);
     setShowModal(false);
-    setFormData({
-      contractNumber: `CON-2026-000${contracts.length + 2}`,
-      quoteIndex: '0',
-    });
+    setFormData(INITIAL_FORM);
 
     // Automatically redirect to Contract Detail Editor
     router.push(`/contracts/${newId}`);
@@ -276,7 +267,10 @@ export default function ContractsPage() {
                   value={formData.quoteIndex}
                   onChange={(e) => handleFormChange('quoteIndex', e.target.value)}
                 >
-                  {DEMO_ACCEPTED_QUOTES.map((quote, idx) => (
+                  {acceptedQuotes.length === 0 && (
+                    <option value="" disabled>No accepted quotes available</option>
+                  )}
+                  {acceptedQuotes.map((quote, idx) => (
                     <option key={quote.id} value={idx}>
                       {quote.quoteNumber} — {quote.siteName} ({formatCurrency(quote.totalAmount)} RON)
                     </option>
@@ -295,7 +289,7 @@ export default function ContractsPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleSave}
-                disabled={!formData.contractNumber.trim()}
+                disabled={!formData.contractNumber.trim() || acceptedQuotes.length === 0}
               >
                 Auto-Import & Save
               </button>

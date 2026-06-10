@@ -4,12 +4,7 @@ import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const INITIAL_EQUIPMENT = [
-  { id: '1', name: 'Core Drill Hilti DD 150-U', serial: 'HLT-8812-99', purchaseDate: '2024-03-15', cost: 8500, scrapValue: 500, status: 'operational', assignedTo: 'Andrei Popescu', usefulLife: 60, maintenanceLogs: [{ id: '1', desc: 'Brush replacement & clutch calibration', cost: 450, date: '2025-06-12' }] },
-  { id: '2', name: 'Rotary Hammer Drill Bosch GBH', serial: 'BSH-4421-00', purchaseDate: '2025-01-10', cost: 3200, scrapValue: 200, status: 'operational', assignedTo: 'Ion Munteanu', usefulLife: 60, maintenanceLogs: [{ id: '1', desc: 'Chuck replacement', cost: 180, date: '2025-09-02' }] },
-  { id: '3', name: 'Cable Tester Fluke MicroScanner', serial: 'FLK-1092-22', purchaseDate: '2023-05-18', cost: 6500, scrapValue: 500, status: 'maintenance', assignedTo: 'Elena Dragomir', usefulLife: 60, maintenanceLogs: [{ id: '1', desc: 'Sensor replacement & calibration', cost: 600, date: '2026-02-14' }] },
-  { id: '4', name: 'Portable Generator Honda EU22i', serial: 'HND-0021-99', purchaseDate: '2022-10-12', cost: 12000, scrapValue: 1000, status: 'operational', assignedTo: 'Vlad Gheorghiu', usefulLife: 60, maintenanceLogs: [{ id: '1', desc: 'Engine oil change & carburetor clean', cost: 350, date: '2024-11-20' }] },
-];
+const INITIAL_EQUIPMENT = [];
 
 const STATUS_BADGES = {
   operational: 'badge-success',

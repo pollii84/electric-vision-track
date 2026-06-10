@@ -5,145 +5,9 @@ import { useRouter as useNextRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu', clientName: 'Popescu Ion' },
-  { id: '2', name: 'Bloc Florești - Et. 3', clientName: 'SC Residential SRL' },
-  { id: '3', name: 'Birouri Sigma Center', clientName: 'Sigma Development' },
-];
+const DEMO_SITES = [];
 
-const DEMO_OFFERS_DATA = {
-  // Site ID '1' Vila Popescu
-  '1': {
-    batch: 'Phase 1: Cabling',
-    originalSubtotal: 3510,
-    items: [
-      {
-        name: 'Cablu NYM 3x2.5mm',
-        qty: 500,
-        unit: 'm',
-        quotePrice: 3.20,
-        bids: {
-          elmark: 3.10,
-          electroGlobal: 3.00,
-          schneider: 3.40,
-        }
-      },
-      {
-        name: 'Întrerupător automat 16A',
-        qty: 24,
-        unit: 'buc',
-        quotePrice: 25.00,
-        bids: {
-          elmark: 24.50,
-          electroGlobal: 23.80,
-          schneider: 26.00,
-        }
-      },
-      {
-        name: 'Priză simplă Legrand',
-        qty: 45,
-        unit: 'buc',
-        quotePrice: 18.00,
-        bids: {
-          elmark: 19.00,
-          electroGlobal: 17.50,
-          schneider: 19.50,
-        }
-      },
-      {
-        name: 'Tub PVC 20mm',
-        qty: 200,
-        unit: 'm',
-        quotePrice: 2.50,
-        bids: {
-          elmark: 2.30,
-          electroGlobal: 2.40,
-          schneider: 2.60,
-        }
-      }
-    ]
-  },
-  // Site ID '2'
-  '2': {
-    batch: 'Phase 1: Cabling',
-    originalSubtotal: 2150,
-    items: [
-      {
-        name: 'Cablu NYM 3x1.5mm',
-        qty: 400,
-        unit: 'm',
-        quotePrice: 2.10,
-        bids: {
-          elmark: 2.05,
-          electroGlobal: 1.95,
-          schneider: 2.20,
-        }
-      },
-      {
-        name: 'Întrerupător automat 10A',
-        qty: 16,
-        unit: 'buc',
-        quotePrice: 22.00,
-        bids: {
-          elmark: 22.50,
-          electroGlobal: 21.00,
-          schneider: 23.50,
-        }
-      },
-      {
-        name: 'Doză de legătură',
-        qty: 80,
-        unit: 'buc',
-        quotePrice: 4.00,
-        bids: {
-          elmark: 3.80,
-          electroGlobal: 4.20,
-          schneider: 4.50,
-        }
-      }
-    ]
-  },
-  // Site ID '3'
-  '3': {
-    batch: 'Phase 1: Cabling',
-    originalSubtotal: 5120,
-    items: [
-      {
-        name: 'Cablu NYM 3x2.5mm',
-        qty: 800,
-        unit: 'm',
-        quotePrice: 3.20,
-        bids: {
-          elmark: 3.15,
-          electroGlobal: 3.05,
-          schneider: 3.35,
-        }
-      },
-      {
-        name: 'Tablou electric 24 module',
-        qty: 4,
-        unit: 'buc',
-        quotePrice: 180.00,
-        bids: {
-          elmark: 175.00,
-          electroGlobal: 178.00,
-          schneider: 185.00,
-        }
-      },
-      {
-        name: 'Șină DIN',
-        qty: 20,
-        unit: 'buc',
-        quotePrice: 12.00,
-        bids: {
-          elmark: 11.50,
-          electroGlobal: 12.50,
-          schneider: 13.00,
-        }
-      }
-    ]
-  }
-};
+const DEMO_OFFERS_DATA = {};
 
 const SUPPLIER_DETAILS = {
   elmark: { name: 'Elmark Romania', phone: '+40 264 555 666', email: 'comenzi@elmark.ro' },
@@ -155,15 +19,16 @@ export default function OffersPage() {
   const router = useNextRouter();
   const { t } = useI18n();
 
-  const [selectedSiteId, setSelectedSiteId] = useState('1');
+  const [selectedSiteId, setSelectedSiteId] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
 
   const currentOfferData = useMemo(() => {
-    return DEMO_OFFERS_DATA[selectedSiteId] || DEMO_OFFERS_DATA['1'];
+    return DEMO_OFFERS_DATA[selectedSiteId] || null;
   }, [selectedSiteId]);
 
   const supplierTotals = useMemo(() => {
     const totals = { elmark: 0, electroGlobal: 0, schneider: 0 };
+    if (!currentOfferData) return totals;
     currentOfferData.items.forEach((item) => {
       totals.elmark += item.qty * item.bids.elmark;
       totals.electroGlobal += item.qty * item.bids.electroGlobal;
@@ -220,6 +85,9 @@ export default function OffersPage() {
             value={selectedSiteId}
             onChange={(e) => setSelectedSiteId(e.target.value)}
           >
+            {DEMO_SITES.length === 0 && (
+              <option value="" disabled>No sites available</option>
+            )}
             {DEMO_SITES.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.name} — {site.clientName}
@@ -233,7 +101,7 @@ export default function OffersPage() {
           <input
             className="form-input"
             type="text"
-            value={currentOfferData.batch}
+            value={currentOfferData?.batch || ''}
             disabled
             style={{ background: 'var(--clr-bg-deep)', opacity: 0.8, cursor: 'not-allowed' }}
           />
@@ -241,7 +109,14 @@ export default function OffersPage() {
       </div>
 
       {/* Offers Comparison Matrix */}
-      <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)', padding: 0, overflow: 'hidden' }}>
+      {!currentOfferData ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">💰</div>
+          <div className="empty-state-title">{t('common.noResults')}</div>
+          <div className="empty-state-desc">No offer data available. Select a site with offers to compare supplier bids.</div>
+        </div>
+      ) : (
+      <><div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)', padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: 'var(--sp-md) var(--sp-md) 0 var(--sp-md)' }}>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>📊 {t('offers.compareOffers')}</h2>
         </div>
@@ -421,6 +296,8 @@ export default function OffersPage() {
           );
         })}
       </div>
+      </>
+      )}
     </Layout>
   );
 }

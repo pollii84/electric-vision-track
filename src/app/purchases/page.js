@@ -4,17 +4,9 @@ import { useState, useMemo, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_PURCHASES = [
-  { id: '1', invoiceId: 'INV-ELM-9921', supplier: 'Elmark', date: '2026-05-18', totalAmount: 4850, siteName: 'Vila Popescu', status: 'verified' },
-  { id: '2', invoiceId: 'INV-ELG-4412', supplier: 'Electro Global', date: '2026-05-22', totalAmount: 8900, siteName: 'Bloc Florești - Et. 3', status: 'pending_verification' },
-  { id: '3', invoiceId: 'INV-SCH-1082', supplier: 'Schneider Direct', date: '2026-05-25', totalAmount: 12400, siteName: 'Birouri Sigma Center', status: 'verified' }
-];
+const DEMO_PURCHASES = [];
 
-const DEMO_SITES = [
-  { id: '1', name: 'Vila Popescu' },
-  { id: '2', name: 'Bloc Florești - Et. 3' },
-  { id: '3', name: 'Birouri Sigma Center' }
-];
+const DEMO_SITES = [];
 
 const STATUS_FILTERS = ['all', 'pending_verification', 'verified'];
 
@@ -36,7 +28,8 @@ const OCR_LOGS_TEMPLATES = [
 export default function PurchasesPage() {
   const { t } = useI18n();
 
-  const [purchases, setPurchases] = useState(DEMO_PURCHASES);
+  const [purchases, setPurchases] = useState([]);
+  const [sites] = useState(DEMO_SITES);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -52,14 +45,11 @@ export default function PurchasesPage() {
   // OCR Verification Form State
   const [formData, setFormData] = useState({
     invoiceId: '',
-    supplier: 'Schneider Direct',
-    date: '2026-06-01',
-    totalAmount: 3150,
+    supplier: '',
+    date: '',
+    totalAmount: 0,
     siteIndex: '0',
-    items: [
-      { name: 'Copper Cable NYM 3x2.5mm²', qty: 500, unit: 'm', cost: 4.5 },
-      { name: 'Circuit Breaker MCB 1P+N 16A', qty: 20, unit: 'pcs', cost: 45 },
-    ]
+    items: []
   });
 
   const filteredPurchases = useMemo(() => {
@@ -142,7 +132,7 @@ export default function PurchasesPage() {
   };
 
   const handleSavePurchase = () => {
-    const selectedSite = DEMO_SITES[Number(formData.siteIndex)];
+    const selectedSite = sites[Number(formData.siteIndex)];
     if (!selectedSite || !formData.invoiceId.trim()) return;
 
     const newPurchase = {
@@ -424,7 +414,10 @@ export default function PurchasesPage() {
                         value={formData.siteIndex}
                         onChange={(e) => handleFormChange('siteIndex', e.target.value)}
                       >
-                        {DEMO_SITES.map((site, index) => (
+                        {sites.length === 0 && (
+                          <option value="" disabled>No sites available</option>
+                        )}
+                        {sites.map((site, index) => (
                           <option key={site.id} value={index}>{site.name}</option>
                         ))}
                       </select>

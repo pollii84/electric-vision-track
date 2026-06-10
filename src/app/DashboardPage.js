@@ -90,8 +90,8 @@ export default function DashboardPage() {
     return [
       { icon: '🏗️', value: String(activeSites), labelKey: 'dashboard.stats.activeSites', change: '+2 this month', theme: 'primary' },
       { icon: '👷', value: String(totalWorkers), labelKey: 'dashboard.stats.totalWorkers', change: '+5', theme: 'accent' },
-      { icon: '⏱️', value: '1,240', labelKey: 'dashboard.stats.hoursThisWeek', change: '+8%', theme: 'success' },
-      { icon: '💰', value: '248,500 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '+12%', theme: 'primary' },
+      { icon: '⏱️', value: '0', labelKey: 'dashboard.stats.hoursThisWeek', change: '', theme: 'success' },
+      { icon: '💰', value: '0 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '', theme: 'primary' },
     ];
   }, [sites, workers]);
 
@@ -107,14 +107,7 @@ export default function DashboardPage() {
   }, [sites]);
 
   const activities = useMemo(() => {
-    return [
-      { color: 'var(--clr-success)', text: 'Andrei Popescu logged 8h at Vila Popescu', time: '2h ago' },
-      { color: 'var(--clr-warning)', text: 'New material purchase: 500m cable NYM 3x2.5', time: '3h ago' },
-      { color: 'var(--clr-accent)', text: 'Task completed: Panel installation at Bloc Florești', time: '5h ago' },
-      { color: 'var(--clr-success)', text: 'Invoice #INV-2026-0042 sent to Sigma Development', time: 'Yesterday' },
-      { color: 'var(--clr-warning)', text: 'Maria Ionescu assigned to Hotel Panoramic', time: 'Yesterday' },
-      { color: 'var(--clr-danger)', text: 'Site Depozit Turda status changed to On Hold', time: '2 days ago' },
-    ];
+    return [];
   }, []);
 
   if (loading || !tenantId) {
@@ -332,6 +325,11 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {activities.length === 0 && (
+            <div style={{ textAlign: 'center', color: 'var(--clr-text-muted)', padding: '24px 0' }}>
+              {t('dashboard.noRecentActivity')}
+            </div>
+          )}
           {activities.map((activity, index) => (
             <div
               key={index}

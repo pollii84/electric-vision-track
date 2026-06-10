@@ -4,12 +4,7 @@ import { useState, useMemo } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 
-const DEMO_INVOICES = [
-  { id: '1', invoiceNumber: 'INV-2026-0001', siteName: 'Vila Popescu', workStage: 'Phase 1: Cabling Billing', amount: 14280, paidAmount: 14280, dueDate: '2026-05-15', status: 'paid' },
-  { id: '2', invoiceNumber: 'INV-2026-0002', siteName: 'Bloc Florești - Et. 3', workStage: 'Phase 1: Cabling Billing', amount: 8500, paidAmount: 2000, dueDate: '2026-05-25', status: 'partial' },
-  { id: '3', invoiceNumber: 'INV-2026-0003', siteName: 'Birouri Sigma Center', workStage: 'Contract Advance Payment', amount: 25000, paidAmount: 0, dueDate: '2026-05-10', status: 'overdue' },
-  { id: '4', invoiceNumber: 'INV-2026-0004', siteName: 'Hotel Panoramic Renovare', workStage: 'Phase 2: Panel Installation', amount: 38900, paidAmount: 0, dueDate: '2026-06-15', status: 'sent' },
-];
+const DEMO_INVOICES = [];
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue'];
 
@@ -22,9 +17,9 @@ const STATUS_BADGES = {
 };
 
 const INITIAL_FORM = {
-  invoiceNumber: 'INV-2026-0005',
-  siteName: 'Vila Popescu',
-  workStage: 'Contract Milestone Billing',
+  invoiceNumber: '',
+  siteName: '',
+  workStage: '',
   amount: '',
   dueDate: '',
 };
@@ -97,8 +92,8 @@ export default function InvoicesPage() {
     setShowAddModal(false);
     setAddForm({
       invoiceNumber: `INV-2026-000${invoices.length + 2}`,
-      siteName: 'Vila Popescu',
-      workStage: 'Contract Milestone Billing',
+      siteName: '',
+      workStage: '',
       amount: '',
       dueDate: '',
     });
@@ -402,8 +397,9 @@ export default function InvoicesPage() {
                   value={addForm.siteName}
                   onChange={(e) => handleAddChange('siteName', e.target.value)}
                 >
-                  {DEMO_INVOICES.map((inv) => (
-                    <option key={inv.id} value={inv.siteName}>{inv.siteName}</option>
+                  <option value="">-- Select Site --</option>
+                  {[...new Set(invoices.map((inv) => inv.siteName))].filter(Boolean).map((name) => (
+                    <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </div>
