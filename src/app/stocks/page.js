@@ -44,21 +44,7 @@ export default function StocksPage() {
     if (!tenantId) return;
     setLoading(true);
     const unsubscribe = onTenantCollectionSnapshot(tenantId, 'stocks', (data) => {
-      if ((!data || data.length === 0) && !seedingRef.current) {
-        seedingRef.current = true;
-        const seedData = async () => {
-          try {
-            for (const item of INITIAL_STOCKS) {
-              await addTenantDoc(tenantId, 'stocks', item);
-            }
-          } catch (err) {
-            console.error('Failed to seed stocks:', err);
-          }
-        };
-        seedData();
-      } else {
-        setStocks(data || []);
-      }
+      setStocks(data || []);
       setLoading(false);
     });
     return () => unsubscribe();

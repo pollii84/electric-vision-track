@@ -165,14 +165,7 @@ export function AuthProvider({ children }) {
         joinedAt: serverTimestamp(),
       });
 
-      // 6. Seed default company data (divisions, workers, sites, contacts, stocks)
-      try {
-        const { seedTenantData } = await import('@/lib/seed');
-        await seedTenantData(newTenantId);
-      } catch (seedErr) {
-        console.error('Failed to seed default tenant data:', seedErr);
-        // Do not block registration if seeding fails
-      }
+      // 6. Seed default company data (divisions, workers, sites, contacts, stocks) - Disabled for clean slate start
 
       const userData = {
         uid: result.user.uid,
