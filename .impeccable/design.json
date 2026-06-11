@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-03T00:00:00Z",
+  "title": "Design System: ElectricVision Track",
+  "extensions": {
+    "colorMeta": {
+      "conductor-gold":       { "role": "primary",   "displayName": "Conductor Gold",       "canonical": "oklch(85% 0.21 90)",  "tonalRamp": ["#2A2000","#4A3800","#6B5200","#8C6B00","#AE8500","#FFCA00","#FFD740","#FFE680","#FFF5C2"] },
+      "conductor-gold-light": { "role": "primary",   "displayName": "Conductor Gold Light",  "canonical": "oklch(89% 0.20 90)",  "tonalRamp": ["#2A2000","#4A3800","#6B5200","#8C6B00","#AE8500","#FFCA00","#FFD740","#FFE680","#FFF5C2"] },
+      "conductor-gold-dark":  { "role": "primary",   "displayName": "Conductor Gold Dark",   "canonical": "oklch(78% 0.20 90)",  "tonalRamp": ["#2A2000","#4A3800","#6B5200","#8C6B00","#AE8500","#FFCA00","#FFD740","#FFE680","#FFF5C2"] },
+      "electric-blue":        { "role": "secondary", "displayName": "Electric Blue",         "canonical": "oklch(58% 0.20 245)", "tonalRamp": ["#001A2E","#003054","#004880","#0570B0","#0693E3","#4DA6FF","#80BFFF","#B3D9FF","#E0F0FF"] },
+      "electric-blue-light":  { "role": "secondary", "displayName": "Electric Blue Light",   "canonical": "oklch(68% 0.18 245)", "tonalRamp": ["#001A2E","#003054","#004880","#0570B0","#0693E3","#4DA6FF","#80BFFF","#B3D9FF","#E0F0FF"] },
+      "bg-deep":              { "role": "neutral",   "displayName": "Panel Deep",            "canonical": "oklch(18% 0.015 265)","tonalRamp": ["#0D0E12","#1F212C","#252731","#2A2C38","#32343F","#3A3D48","#434652","#4E5260","#6B6F82"] },
+      "bg-base":              { "role": "neutral",   "displayName": "Panel Base",            "canonical": "oklch(20% 0.015 265)","tonalRamp": ["#0D0E12","#1F212C","#252731","#2A2C38","#32343F","#3A3D48","#434652","#4E5260","#6B6F82"] },
+      "bg-surface":           { "role": "neutral",   "displayName": "Panel Surface",         "canonical": "oklch(22% 0.015 265)","tonalRamp": ["#0D0E12","#1F212C","#252731","#2A2C38","#32343F","#3A3D48","#434652","#4E5260","#6B6F82"] },
+      "bg-elevated":          { "role": "neutral",   "displayName": "Panel Elevated",        "canonical": "oklch(24% 0.015 265)","tonalRamp": ["#0D0E12","#1F212C","#252731","#2A2C38","#32343F","#3A3D48","#434652","#4E5260","#6B6F82"] },
+      "text-primary":         { "role": "neutral",   "displayName": "Text Primary",          "canonical": "oklch(97% 0.003 0)",  "tonalRamp": ["#1F212C","#32343F","#4E5260","#768492","#B5B5BA","#D0D0D3","#E8E8EA","#F5F5F5","#FFFFFF"] },
+      "text-secondary":       { "role": "neutral",   "displayName": "Text Secondary",        "canonical": "oklch(76% 0.004 0)",  "tonalRamp": ["#1F212C","#32343F","#4E5260","#768492","#B5B5BA","#D0D0D3","#E8E8EA","#F5F5F5","#FFFFFF"] },
+      "text-muted":           { "role": "neutral",   "displayName": "Text Muted",            "canonical": "oklch(57% 0.01 230)", "tonalRamp": ["#1F212C","#32343F","#4E5260","#768492","#B5B5BA","#D0D0D3","#E8E8EA","#F5F5F5","#FFFFFF"] },
+      "success":              { "role": "tertiary",  "displayName": "Circuit Green",         "canonical": "oklch(65% 0.19 145)", "tonalRamp": ["#052E16","#0A4A25","#14532D","#166534","#22C55E","#4ADE80","#86EFAC","#BBF7D0","#DCFCE7"] },
+      "danger":               { "role": "tertiary",  "displayName": "Fault Red",             "canonical": "oklch(58% 0.23 25)",  "tonalRamp": ["#2E0505","#4A0A0A","#7F1D1D","#991B1B","#EF4444","#F87171","#FCA5A5","#FECACA","#FEE2E2"] },
+      "warning":              { "role": "tertiary",  "displayName": "Alert Amber",           "canonical": "oklch(74% 0.18 70)",  "tonalRamp": ["#2D1A00","#4A2D00","#78350F","#92400E","#F59E0B","#FBBF24","#FCD34D","#FDE68A","#FEF3C7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles only. Full-page view headings, never in sidebars or cards." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings and modal titles." },
+      "title":    { "displayName": "Title",    "purpose": "Card headings and subsection labels." },
+      "body":     { "displayName": "Body",     "purpose": "All prose, list text, table cells. Max 65-75ch line length." },
+      "label":    { "displayName": "Label",    "purpose": "Form labels, badge text, sidebar section titles. Uppercase, ≤4 words." }
+    },
+    "shadows": [
+      { "name": "focus-ring",        "value": "0 0 0 3px rgba(255,202,0,0.25)",   "purpose": "Input and button keyboard focus. Consistent across all interactive elements." },
+      { "name": "button-hover-glow", "value": "0 4px 16px rgba(255,202,0,0.25)", "purpose": "Primary button hover only." },
+      { "name": "card-lift",         "value": "0 4px 12px rgba(0,0,0,0.4)",       "purpose": "Clickable card hover state. Signals interactivity." },
+      { "name": "modal",             "value": "0 8px 32px rgba(0,0,0,0.5)",       "purpose": "Floating overlays only. Heaviest shadow; reserved for modal/dialog." }
+    ],
+    "motion": [
+      { "name": "ease-out",    "value": "cubic-bezier(0.16, 1, 0.3, 1)",  "purpose": "Default easing for all state transitions." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.65, 0, 0.35, 1)", "purpose": "Bidirectional transitions (expand/collapse, slide in/out)." },
+      { "name": "fast",        "value": "150ms",                           "purpose": "Button states, hover transitions, badge changes." },
+      { "name": "normal",      "value": "250ms",                           "purpose": "Card hover, panel transitions, modal entry." },
+      { "name": "slow",        "value": "400ms",                           "purpose": "Page transitions, large layout changes." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "640px",  "notes": "Single-column grid, full-width inputs." },
+      { "name": "tablet", "value": "768px",  "notes": "Sidebar collapses to bottom nav." },
+      { "name": "desktop","value": "1024px", "notes": "3-4 column grids restore." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call to action. Conductor Gold with dark text. Used for primary actions on any screen.",
+      "html": "<button class=\"ds-btn-primary\">Save Changes</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; color: #1F212C; background: linear-gradient(135deg, #FFCA00, #E0B200); border: 1px solid transparent; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(255,202,0,0.25); transition: box-shadow 150ms cubic-bezier(0.16,1,0.3,1), transform 150ms cubic-bezier(0.16,1,0.3,1); white-space: nowrap; } .ds-btn-primary:hover { box-shadow: 0 4px 16px rgba(255,202,0,0.25), 0 0 20px rgba(255,202,0,0.25); } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,202,0,0.25); } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: none; } }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting action. Elevated surface with border. Sits beside primary buttons.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; color: #F5F5F5; background: #32343F; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1), border-color 150ms cubic-bezier(0.16,1,0.3,1); white-space: nowrap; } .ds-btn-secondary:hover { background: #3A3D48; border-color: rgba(255,255,255,0.14); } .ds-btn-secondary:active { transform: scale(0.97); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,202,0,0.25); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Lowest-emphasis action. Transparent at rest. Used for tertiary actions or icon-only controls.",
+      "html": "<button class=\"ds-btn-ghost\">View All</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; color: #B5B5BA; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1), color 150ms cubic-bezier(0.16,1,0.3,1); white-space: nowrap; } .ds-btn-ghost:hover { background: #3A3D48; color: #F5F5F5; } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,202,0,0.25); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary container. Used for grouped content sections on all pages.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><span class=\"ds-card-title\">Active Sites</span></div><p style=\"color:#B5B5BA;font-size:0.875rem\">Card body content goes here.</p></div>",
+      "css": ".ds-card { background: #2A2C38; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px; transition: border-color 250ms cubic-bezier(0.16,1,0.3,1); } .ds-card:hover { border-color: rgba(255,255,255,0.14); } .ds-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; } .ds-card-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 600; color: #F5F5F5; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "form-input",
+      "description": "Standard form input. Used across all data entry forms.",
+      "html": "<div class=\"ds-form-group\"><label class=\"ds-form-label\" for=\"ds-input-ex\">Site Name</label><input class=\"ds-form-input\" id=\"ds-input-ex\" type=\"text\" placeholder=\"Enter site name\" /></div>",
+      "css": ".ds-form-group { display: flex; flex-direction: column; gap: 6px; } .ds-form-label { font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; color: #B5B5BA; text-transform: uppercase; letter-spacing: 0.05em; } .ds-form-input { width: 100%; padding: 10px 14px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; color: #F5F5F5; background: #32343F; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; outline: none; transition: border-color 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1); } .ds-form-input::placeholder { color: #768492; } .ds-form-input:focus { border-color: #FFCA00; box-shadow: 0 0 0 3px rgba(255,202,0,0.25); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-primary",
+      "description": "Role-coded status indicator. Used on sites, tasks, timesheets, contracts.",
+      "html": "<div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"ds-badge ds-badge-success\">Active</span><span class=\"ds-badge ds-badge-warning\">Pending</span><span class=\"ds-badge ds-badge-danger\">Overdue</span><span class=\"ds-badge ds-badge-primary\">Draft</span></div>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.6875rem; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; } .ds-badge-primary { background: rgba(255,202,0,0.08); color: #FFD740; border: 1px solid rgba(255,202,0,0.15); } .ds-badge-success { background: rgba(34,197,94,0.10); color: #4ADE80; border: 1px solid rgba(34,197,94,0.15); } .ds-badge-warning { background: rgba(245,158,11,0.10); color: #F59E0B; border: 1px solid rgba(245,158,11,0.15); } .ds-badge-danger { background: rgba(239,68,68,0.10); color: #F87171; border: 1px solid rgba(239,68,68,0.15); }"
+    },
+    {
+      "name": "Sidebar Nav Link",
+      "kind": "nav",
+      "description": "Primary navigation item in the 260px sidebar. Icon + label. Active state uses Conductor Gold.",
+      "html": "<nav class=\"ds-sidebar-nav\"><a class=\"ds-sidebar-link\" href=\"#\">🏗️ Sites</a><a class=\"ds-sidebar-link ds-sidebar-link--active\" href=\"#\">📋 Tasks</a><a class=\"ds-sidebar-link\" href=\"#\">⏱️ Timesheets</a></nav>",
+      "css": ".ds-sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px; } .ds-sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: #B5B5BA; border-radius: 8px; text-decoration: none; transition: background 150ms cubic-bezier(0.16,1,0.3,1), color 150ms cubic-bezier(0.16,1,0.3,1); } .ds-sidebar-link:hover { background: #3A3D48; color: #F5F5F5; } .ds-sidebar-link--active { background: rgba(255,202,0,0.08); color: #FFCA00; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Switchboard",
+    "overview": "ElectricVision Track is a dense, purposeful tool — every element routed to its function, nothing decorative. The Switchboard metaphor governs decisions at every scale: a switchboard handles complexity by organizing it, not hiding it. Information is present and legible; hierarchy communicates urgency, not visual style. The gold signal (Conductor Gold) moves through a deep industrial dark in the same way live current moves through a panel: intentional, directed, unmistakable.\n\nThe palette is structured, not expressive. Five tonal dark surface levels build depth without shadows at rest. Conductor Gold appears only where it earns its place: primary actions, active states, key indicators. The Electric Blue accent handles information-state color without competing. Everything else is neutral.\n\nThis system rejects the enterprise ERP aesthetic and the consumer dark-mode aesthetic. No glassmorphism by default, no gradient text, no hero-metric templates. The interface should feel like a well-made tool a field electrician and an operations manager would both trust on day one.",
+    "keyCharacteristics": [
+      "Five-layer dark surface stack for depth without shadows at rest",
+      "Conductor Gold reserved for primary actions and active states only",
+      "Inter for all body/label copy; Poppins for all headings",
+      "8px base radius throughout; 16px on containers",
+      "Tonal elevation: every surface step is a distinct dark layer, not a shadow",
+      "Compact, dense information hierarchy — built for operators, not tourists"
+    ],
+    "rules": [
+      { "name": "The Conductor Rule",       "body": "Conductor Gold appears on primary actions and active states only. On any given screen, gold covers ≤10% of the surface area. Its scarcity is the signal.", "section": "colors" },
+      { "name": "The Surface Stack Rule",   "body": "Depth is expressed through the five panel layers (Deep → Base → Surface → Elevated → Hover), not shadows. Shadows appear only as state feedback.", "section": "elevation" },
+      { "name": "The Flat-By-Default Rule", "body": "All surfaces are flat at rest. A shadow on a static container is wrong. If you want something to feel more important, increase its surface layer instead.", "section": "elevation" },
+      { "name": "The Single Family Rule",   "body": "Inter carries the entire UI vocabulary outside of headings. Don't introduce a third family. Mono is the only permitted third family.", "section": "typography" },
+      { "name": "The Fixed Scale Rule",     "body": "No fluid clamp sizing in product UI. Fixed rem at each hierarchy level.", "section": "typography" }
+    ],
+    "dos": [
+      "Do use Conductor Gold on primary action buttons, active nav states, and focus rings only.",
+      "Do use the five surface layers to express depth before adding a shadow.",
+      "Do keep all heading copy in Poppins and all UI copy in Inter.",
+      "Do use full-pill badges for status labels. Keep badge copy uppercase and ≤3 words.",
+      "Do make touch targets 44px minimum. Field workers use this on phones.",
+      "Do provide both Romanian and English strings for every user-facing label.",
+      "Do use the semantic shadow vocabulary exactly: Focus Ring on inputs, Button Hover Glow on primary buttons, Modal Shadow on overlays."
+    ],
+    "donts": [
+      "Don't use background-clip: text gradient text.",
+      "Don't use glassmorphism as a default card style. Reserve for login and overlays only.",
+      "Don't add border-left > 1px as a colored accent stripe on cards or list items.",
+      "Don't use display fonts (Poppins) in buttons, form labels, table cells, or badges.",
+      "Don't put shadows on static containers at rest.",
+      "Don't use gold as a decorative background fill, text gradient, or section accent.",
+      "Don't introduce a fourth font family.",
+      "Don't use Conductor Gold to color inactive states.",
+      "Don't use modals as the first solution for confirmations or secondary actions."
+    ]
+  }
+}
