@@ -400,7 +400,6 @@ export default function WorkersPage() {
                   <p style={{ marginTop: 12, color: 'var(--clr-text-muted)', fontSize: 'var(--fs-sm)' }}>
                     {t('workers.invite.generating')}
                   </p>
-                  <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
                 </div>
               )}
 

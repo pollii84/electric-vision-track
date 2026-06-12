@@ -74,6 +74,9 @@ _Last updated: 2026-06-12_
 - `src/app/invite/[token]/page.js` — accept invite (public)
 - `src/components/Layout.js` — nav + sidebar
 
+## Bug Fixes Applied (2026-06-12)
+- Removed duplicate nested `<style jsx global>` in `src/app/invite/[token]/page.js` (L149) and `src/app/workers/page.js` (L403) — caused "Detected nested styled-jsx tag" runtime error crashing invite route
+
 ## Next Steps (suggested)
 1. Fix security issues in AuthContext.js and login/page.js
 2. Fix `isDemo` export in AuthContext

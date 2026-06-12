@@ -146,7 +146,6 @@ export default function AcceptInvitePage() {
             <svg width="36" height="36" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite', color: 'var(--clr-primary)' }}>
               <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
             </svg>
-            <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
