@@ -1,85 +1,37 @@
-# Handoff Document — Electric Vision Track
-_Last updated: 2026-06-12_
+# Session Handoff
+_Snapshot: 2026-06-12 — update before every /compact_
 
-## App
-- **URL**: app.dimensionvisiontrack.com
-- **Repo**: github.com/pollii84/electric-vision-track
-- **Stack**: Next.js 16.2.6 App Router + Firebase Auth + Firestore + Firebase App Hosting
-- **Auto-deploy**: `git push origin main` → Firebase App Hosting deploys automatically
+## What we just finished
+- Built the complete invite flow (workers invite workers via link/QR → accept page creates Firebase Auth account)
+- Fixed nested styled-jsx bug that crashed `/invite/[token]` route
+- All invite flow tests pass
 
-## Architecture
-- Multi-tenant: `tenantId = owner's UID`
-- Role hierarchy: owner > manager > worker (6 experience levels)
-- Non-owner accounts created via invite flow only
-- All tenant data under `tenants/{tenantId}/` in Firestore
+## Current state — nothing in progress
+All files committed and pushed to `main` (commit `8bcf1fd`). Working tree clean.
 
-## Invite Flow — COMPLETED (this session)
+## What to work on next
+1. **Fix security issues** (most urgent):
+   - `src/contexts/AuthContext.js` L87,94 — `polimoga@gmail.com` hardcoded as owner check, replace with Firestore UID-based check
+   - `src/app/login/page.js` ~L395 — test credentials visible in UI, remove before production
+2. **Fix `isDemo` undefined** — exported nowhere but used in `src/components/Layout.js` and Settings
+3. **Firestore Security Rules** for `invites` collection — public read only if `status == 'pending'`, write only for authenticated owner
+4. **Role-based route guards** — all authenticated users currently see all pages
+5. **End-to-end invite test with real Firebase** — current tests use fake tokens against Firestore, need real data path tested
 
-### Files added/modified:
-| File | Status | Purpose |
-|------|--------|---------|
-| `src/lib/invites.js` | NEW | `createInvite`, `getInvite`, `acceptInvite` |
-| `src/app/invite/[token]/page.js` | NEW | Public accept-invite page (creates Firebase Auth account) |
-| `src/app/workers/page.js` | MODIFIED | Invite button + status badges + invite modal (link + QR) |
-| `src/lib/i18n/en.json` | MODIFIED | Added `workers.invite.*` keys |
-| `src/lib/i18n/ro.json` | MODIFIED | Added `workers.invite.*` keys (Romanian) |
+## Key context
+- App: `app.dimensionvisiontrack.com` | Repo: `pollii84/electric-vision-track`
+- Auto-deploy on `git push origin main`
+- Multi-tenant: `tenantId = owner UID`
+- Non-owner accounts created via invite only (just built)
+- i18n: EN + RO, hook `useI18n()` → `t('key')`
+- Design system: Conductor Gold `#FFCA00`, dark industrial — see `DESIGN.md`
+- Caveman mode: ACTIVE (full)
 
-### How it works:
-1. Owner opens Workers page, clicks "Send Invite" on a worker card
-2. `createInvite()` writes `invites/{token}` (global collection, 7-day TTL)
-3. Modal shows link + QR code for owner to share
-4. Worker opens `app.../invite/{token}` in browser
-5. Form: email (readonly), name (editable), password
-6. On submit: `createUserWithEmailAndPassword` → writes `users/{uid}` + `tenants/{tenantId}/members/{uid}` → `acceptInvite()` marks token used + writes `authUid` to worker record
+## Files added this session
+- `src/lib/invites.js` — createInvite / getInvite / acceptInvite
+- `src/app/invite/[token]/page.js` — public accept-invite page
+- `DESIGN.md`, `PRODUCT.md`, `.impeccable/` — design system docs
 
-### Firestore collections used:
-- `invites/{token}` — global, no auth needed to read
-- `tenants/{tenantId}/workers/{workerId}` — updated with `authUid` + `inviteStatus`
-- `tenants/{tenantId}/members/{uid}` — created on accept
-- `users/{uid}` — created on accept
-
-## Known Issues / Pending Work
-
-### Security (not fixed yet)
-- `src/contexts/AuthContext.js` L87,94: `polimoga@gmail.com` hardcoded as owner check — must be replaced with Firestore UID-based check
-- `src/app/login/page.js` ~L395: test credentials visible in UI — must be removed before production
-- `isDemo` not exported from AuthContext but used in Layout.js and Settings.js — always `undefined`
-
-### Missing features
-- Role-based access control: all authenticated users see all pages regardless of role
-- Workers page: "Send Invite" button shows for workers without email — should be hidden (already handled: `!worker.authUid && worker.email`)
-- Re-invite flow: if invite expires, owner can click "Send Invite" again — `createInvite` will generate a new token but old one stays in Firestore (not a bug, just FYI)
-
-## Design System
-- `PRODUCT.md` — strategic context (register: product, North Star: "The Switchboard")
-- `DESIGN.md` — visual spec (Conductor Gold #FFCA00, dark industrial)
-- `.impeccable/design.json` — design tokens sidecar (7 components + tonal ramps)
-- `.impeccable/live/config.json` — live iteration config
-
-## Git Branches
-- `main` — production (auto-deploys)
-- `backup/pre-commit-2026-06-03` — snapshot before design system commit
-
-## i18n
-- `src/lib/i18n/en.json` — English
-- `src/lib/i18n/ro.json` — Romanian
-- Hook: `useI18n()` → `t('key.path')`
-
-## Key Files
-- `src/contexts/AuthContext.js` — auth state, role, tenantId
-- `src/contexts/BusinessContext.js` — company switcher
-- `src/lib/firebase.js` — Firebase init
-- `src/lib/invites.js` — invite CRUD
-- `src/app/workers/page.js` — workers list + invite flow
-- `src/app/invite/[token]/page.js` — accept invite (public)
-- `src/components/Layout.js` — nav + sidebar
-
-## Bug Fixes Applied (2026-06-12)
-- Removed duplicate nested `<style jsx global>` in `src/app/invite/[token]/page.js` (L149) and `src/app/workers/page.js` (L403) — caused "Detected nested styled-jsx tag" runtime error crashing invite route
-
-## Next Steps (suggested)
-1. Fix security issues in AuthContext.js and login/page.js
-2. Fix `isDemo` export in AuthContext
-3. Add Firestore Security Rules for `invites` collection (allow read if `status == 'pending'`, write only for authenticated owners)
-4. Test invite flow end-to-end
-5. Add role-based route guards
+## Files modified this session
+- `src/app/workers/page.js` — invite button, status badges, invite modal
+- `src/lib/i18n/en.json` + `ro.json` — added `workers.invite.*` keys
