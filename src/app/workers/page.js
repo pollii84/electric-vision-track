@@ -67,6 +67,7 @@ export default function WorkersPage() {
 
   // Invite state
   const [inviteWorker, setInviteWorker] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteConfirmed, setInviteConfirmed] = useState(false);
 
@@ -132,24 +133,24 @@ export default function WorkersPage() {
 
   const handleOpenInvite = useCallback((worker, e) => {
     e.stopPropagation();
-    if (!worker.email) return;
     setInviteWorker(worker);
+    setInviteEmail(worker.email || '');
     setInviteConfirmed(false);
     setInviteLoading(false);
   }, []);
 
   const handleSendInvite = useCallback(async () => {
-    if (!inviteWorker) return;
+    if (!inviteWorker || !inviteEmail.trim()) return;
     setInviteLoading(true);
     try {
-      await createInvite(tenantId, inviteWorker.id, inviteWorker, user.uid);
+      await createInvite(tenantId, inviteWorker.id, { ...inviteWorker, email: inviteEmail.trim() }, user.uid);
       setInviteConfirmed(true);
     } catch (err) {
       console.error('Failed to send invite:', err);
     } finally {
       setInviteLoading(false);
     }
-  }, [inviteWorker, tenantId, user]);
+  }, [inviteWorker, inviteEmail, tenantId, user]);
 
   if (loading || !tenantId) {
     return (
@@ -338,7 +339,7 @@ export default function WorkersPage() {
                     {t('workers.invite.noAccount')}
                   </span>
                 )}
-                {!worker.authUid && worker.email && (
+                {!worker.authUid && (
                   <button
                     className="btn btn-sm btn-secondary"
                     onClick={(e) => handleOpenInvite(worker, e)}
@@ -382,17 +383,20 @@ export default function WorkersPage() {
                       {inviteWorker.firstName} {inviteWorker.lastName}
                     </strong>
                   </p>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-lg)',
-                    padding: '10px 14px', background: 'var(--clr-primary-subtle)',
-                    borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.12)',
-                  }}>
-                    <span style={{ fontSize: 18 }}>📧</span>
-                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</span>
+                  <div className="form-group" style={{ marginBottom: 'var(--sp-lg)' }}>
+                    <label className="form-label" htmlFor="invite-email">
+                      {t('workers.fields.email')}
+                    </label>
+                    <input
+                      id="invite-email"
+                      className="form-input"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      autoFocus
+                    />
                   </div>
-                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 'var(--sp-md)' }}>
-                    {t('workers.invite.expiresIn')}
-                  </p>
                 </>
               )}
 
@@ -426,7 +430,7 @@ export default function WorkersPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--clr-primary-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.12)' }}>
                     <span style={{ fontSize: 18 }}>📧</span>
-                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteEmail}</span>
                   </div>
                   <p style={{ marginTop: 'var(--sp-md)', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>
                     {t('workers.invite.emailInstructions')}
@@ -441,7 +445,7 @@ export default function WorkersPage() {
                   <button className="btn btn-secondary" onClick={() => setInviteWorker(null)} disabled={inviteLoading}>
                     {t('common.buttons.cancel')}
                   </button>
-                  <button className="btn btn-primary" onClick={handleSendInvite} disabled={inviteLoading}>
+                  <button className="btn btn-primary" onClick={handleSendInvite} disabled={inviteLoading || !inviteEmail.trim()}>
                     ✉ {t('workers.invite.sendInvite')}
                   </button>
                 </>
