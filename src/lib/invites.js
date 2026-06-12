@@ -1,73 +1,37 @@
 'use client';
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
-const INVITE_TTL_DAYS = 7;
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export async function createInvite(tenantId, workerId, workerData, invitedByUid) {
-  const token = crypto.randomUUID();
-  const expiresAt = Timestamp.fromDate(
-    new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000)
-  );
+  const displayName = `${workerData.firstName} ${workerData.lastName}`.trim();
+  const role = workerData.experienceLevel === 'manager' ? 'manager' : 'worker';
 
-  await setDoc(doc(db, 'invites', token), {
-    token,
-    tenantId,
-    workerId,
-    email: workerData.email || '',
-    displayName: `${workerData.firstName} ${workerData.lastName}`.trim(),
-    role: workerData.experienceLevel === 'manager' ? 'manager' : 'worker',
-    experienceLevel: workerData.experienceLevel || 'junior',
-    invitedBy: invitedByUid,
-    createdAt: serverTimestamp(),
-    expiresAt,
-    status: 'pending',
-    acceptedBy: null,
-    usedAt: null,
+  const res = await fetch('/api/invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tenantId,
+      workerId,
+      email: workerData.email,
+      displayName,
+      role,
+      experienceLevel: workerData.experienceLevel || 'junior',
+      invitedBy: invitedByUid,
+    }),
   });
 
-  await updateDoc(doc(db, 'tenants', tenantId, 'workers', workerId), {
-    inviteToken: token,
-    inviteStatus: 'pending',
-    updatedAt: serverTimestamp(),
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to create invite');
+  }
+
+  const { uid } = await res.json();
+
+  await sendPasswordResetEmail(auth, workerData.email, {
+    url: `${window.location.origin}/login?invited=1`,
+    handleCodeInApp: false,
   });
 
-  return token;
-}
-
-export async function getInvite(token) {
-  const snap = await getDoc(doc(db, 'invites', token));
-  if (!snap.exists()) return null;
-  return snap.data();
-}
-
-export async function acceptInvite(token, uid) {
-  const invite = await getInvite(token);
-  if (!invite) throw new Error('invite_not_found');
-  if (invite.status !== 'pending') throw new Error('invite_already_used');
-
-  const expiresAt = invite.expiresAt?.toDate?.() ?? new Date(invite.expiresAt);
-  if (new Date() > expiresAt) throw new Error('invite_expired');
-
-  await updateDoc(doc(db, 'invites', token), {
-    status: 'accepted',
-    acceptedBy: uid,
-    usedAt: serverTimestamp(),
-  });
-
-  await updateDoc(doc(db, 'tenants', invite.tenantId, 'workers', invite.workerId), {
-    authUid: uid,
-    inviteStatus: 'accepted',
-    updatedAt: serverTimestamp(),
-  });
-
-  return invite;
+  return uid;
 }

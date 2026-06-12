@@ -7,7 +7,6 @@ import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 import { createInvite } from '@/lib/invites';
-import QRCode from 'qrcode';
 
 const EXPERIENCE_LEVELS = [
   'manager',
@@ -68,8 +67,6 @@ export default function WorkersPage() {
 
   // Invite state
   const [inviteWorker, setInviteWorker] = useState(null);
-  const [inviteLink, setInviteLink] = useState('');
-  const [inviteQr, setInviteQr] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteConfirmed, setInviteConfirmed] = useState(false);
 
@@ -137,8 +134,6 @@ export default function WorkersPage() {
     e.stopPropagation();
     if (!worker.email) return;
     setInviteWorker(worker);
-    setInviteLink('');
-    setInviteQr('');
     setInviteConfirmed(false);
     setInviteLoading(false);
   }, []);
@@ -147,23 +142,14 @@ export default function WorkersPage() {
     if (!inviteWorker) return;
     setInviteLoading(true);
     try {
-      const token = await createInvite(tenantId, inviteWorker.id, inviteWorker, user.uid);
-      const link = `${window.location.origin}/invite/${token}`;
-      setInviteLink(link);
-      const qr = await QRCode.toDataURL(link, { width: 200, margin: 2, color: { dark: '#FFCA00', light: '#1F212C' } });
-      setInviteQr(qr);
+      await createInvite(tenantId, inviteWorker.id, inviteWorker, user.uid);
       setInviteConfirmed(true);
     } catch (err) {
-      console.error('Failed to create invite:', err);
+      console.error('Failed to send invite:', err);
     } finally {
       setInviteLoading(false);
     }
   }, [inviteWorker, tenantId, user]);
-
-  const handleCopyInvite = useCallback(() => {
-    if (!inviteLink) return;
-    navigator.clipboard.writeText(inviteLink).catch(() => {});
-  }, [inviteLink]);
 
   if (loading || !tenantId) {
     return (
@@ -423,48 +409,27 @@ export default function WorkersPage() {
               )}
 
               {/* ── CONFIRMED STATE ── */}
-              {!inviteLoading && inviteConfirmed && inviteLink && (
+              {!inviteLoading && inviteConfirmed && (
                 <>
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-lg)',
+                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-md)',
                     padding: '10px 14px', background: 'rgba(34,197,94,0.08)',
                     borderRadius: 'var(--radius-sm)', border: '1px solid rgba(34,197,94,0.15)',
                   }}>
                     <span style={{ fontSize: 18 }}>✓</span>
                     <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-secondary)' }}>
-                      {t('workers.invite.sentConfirmation')} <strong>{inviteWorker.firstName} {inviteWorker.lastName}</strong>
+                      {t('workers.invite.sentConfirmation')}{' '}
+                      <strong style={{ color: 'var(--clr-text-primary)' }}>
+                        {inviteWorker.firstName} {inviteWorker.lastName}
+                      </strong>
                     </span>
                   </div>
-
-                  {/* Link copy box */}
-                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {t('workers.invite.shareLink')}
-                  </p>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--sp-lg)' }}>
-                    <input
-                      className="form-input"
-                      type="text"
-                      value={inviteLink}
-                      readOnly
-                      style={{ flex: 1, fontSize: 'var(--fs-sm)', opacity: 0.8 }}
-                      onFocus={(e) => e.target.select()}
-                    />
-                    <button className="btn btn-primary btn-sm" onClick={handleCopyInvite} style={{ flexShrink: 0 }}>
-                      {t('workers.invite.copyLink')}
-                    </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--clr-primary-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.12)' }}>
+                    <span style={{ fontSize: 18 }}>📧</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</span>
                   </div>
-
-                  {inviteQr && (
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {t('workers.invite.orScanQr')}
-                      </p>
-                      <img src={inviteQr} alt="Invite QR code" style={{ width: 152, height: 152, borderRadius: 'var(--radius-md)', display: 'inline-block' }} />
-                    </div>
-                  )}
-
-                  <p style={{ marginTop: 'var(--sp-md)', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', textAlign: 'center' }}>
-                    {t('workers.invite.expiresIn')}
+                  <p style={{ marginTop: 'var(--sp-md)', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>
+                    {t('workers.invite.emailInstructions')}
                   </p>
                 </>
               )}
