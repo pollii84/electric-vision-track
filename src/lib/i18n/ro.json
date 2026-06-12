@@ -183,11 +183,15 @@
       "noAccount": "Fără Cont",
       "sendInvite": "Trimite Invitație",
       "modalTitle": "Trimite Link de Invitație",
+      "sentTitle": "Invitație Trimisă",
+      "confirmPrompt": "Trimite link de invitație către",
       "generating": "Se generează link-ul de invitație...",
-      "instructions": "Trimite acest link sau cod QR muncitorului. Îl va folosi pentru a-și crea contul.",
+      "sentConfirmation": "Link de invitație generat pentru",
+      "shareLink": "Distribuie acest link",
       "copyLink": "Copiază Link",
       "orScanQr": "Sau scanează codul QR",
-      "expiresIn": "Link-ul expiră în 7 zile"
+      "expiresIn": "Link-ul expiră în 7 zile",
+      "inviteTeamMembers": "Invită Membri Echipă"
     },
     "confirmDelete": "Ești sigur că vrei să ștergi acest muncitor?",
     "workerSaved": "Muncitorul a fost salvat cu succes",

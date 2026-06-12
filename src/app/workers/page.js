@@ -71,6 +71,7 @@ export default function WorkersPage() {
   const [inviteLink, setInviteLink] = useState('');
   const [inviteQr, setInviteQr] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteConfirmed, setInviteConfirmed] = useState(false);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -132,25 +133,32 @@ export default function WorkersPage() {
     setShowModal(false);
   };
 
-  const handleOpenInvite = useCallback(async (worker, e) => {
+  const handleOpenInvite = useCallback((worker, e) => {
     e.stopPropagation();
     if (!worker.email) return;
     setInviteWorker(worker);
     setInviteLink('');
     setInviteQr('');
+    setInviteConfirmed(false);
+    setInviteLoading(false);
+  }, []);
+
+  const handleSendInvite = useCallback(async () => {
+    if (!inviteWorker) return;
     setInviteLoading(true);
     try {
-      const token = await createInvite(tenantId, worker.id, worker, user.uid);
+      const token = await createInvite(tenantId, inviteWorker.id, inviteWorker, user.uid);
       const link = `${window.location.origin}/invite/${token}`;
       setInviteLink(link);
       const qr = await QRCode.toDataURL(link, { width: 200, margin: 2, color: { dark: '#FFCA00', light: '#1F212C' } });
       setInviteQr(qr);
+      setInviteConfirmed(true);
     } catch (err) {
       console.error('Failed to create invite:', err);
     } finally {
       setInviteLoading(false);
     }
-  }, [tenantId, user]);
+  }, [inviteWorker, tenantId, user]);
 
   const handleCopyInvite = useCallback(() => {
     if (!inviteLink) return;
@@ -187,10 +195,10 @@ export default function WorkersPage() {
             className="btn btn-primary"
             onClick={() => setShowModal(true)}
             id="add-worker-btn"
-            aria-label={t('workers.addWorker')}
+            aria-label={t('workers.invite.inviteTeamMembers')}
           >
             <span>+</span>
-            {t('workers.addWorker')}
+            {t('workers.invite.inviteTeamMembers')}
           </button>
         </div>
       </div>
@@ -364,34 +372,45 @@ export default function WorkersPage() {
       {inviteWorker && (
         <div
           className="modal-backdrop"
-          onClick={() => setInviteWorker(null)}
+          onClick={() => !inviteLoading && setInviteWorker(null)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="invite-modal-title"
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="modal-header">
               <h3 className="modal-title" id="invite-modal-title">
-                ✉ {t('workers.invite.modalTitle')}
+                {inviteConfirmed ? `✓ ${t('workers.invite.sentTitle')}` : `✉ ${t('workers.invite.modalTitle')}`}
               </h3>
-              <button className="modal-close" onClick={() => setInviteWorker(null)} aria-label={t('common.buttons.close')}>✕</button>
+              <button className="modal-close" onClick={() => setInviteWorker(null)} aria-label={t('common.buttons.close')} disabled={inviteLoading}>✕</button>
             </div>
-            <div className="modal-body">
-              {/* Worker name */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-md)',
-                padding: '10px 14px', background: 'var(--clr-primary-subtle)',
-                borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.1)',
-              }}>
-                <span style={{ fontSize: 20 }}>👷</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)' }}>
-                    {inviteWorker.firstName} {inviteWorker.lastName}
-                  </div>
-                  <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</div>
-                </div>
-              </div>
 
+            <div className="modal-body">
+
+              {/* ── PRE-SEND STATE ── */}
+              {!inviteLoading && !inviteConfirmed && (
+                <>
+                  <p style={{ fontSize: 'var(--fs-base)', color: 'var(--clr-text-secondary)', marginBottom: 'var(--sp-lg)', lineHeight: 1.6 }}>
+                    {t('workers.invite.confirmPrompt')}{' '}
+                    <strong style={{ color: 'var(--clr-text-primary)' }}>
+                      {inviteWorker.firstName} {inviteWorker.lastName}
+                    </strong>
+                  </p>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-lg)',
+                    padding: '10px 14px', background: 'var(--clr-primary-subtle)',
+                    borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.12)',
+                  }}>
+                    <span style={{ fontSize: 18 }}>📧</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</span>
+                  </div>
+                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 'var(--sp-md)' }}>
+                    {t('workers.invite.expiresIn')}
+                  </p>
+                </>
+              )}
+
+              {/* ── LOADING STATE ── */}
               {inviteLoading && (
                 <div style={{ textAlign: 'center', padding: 'var(--sp-xl)' }}>
                   <svg width="32" height="32" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite', color: 'var(--clr-primary)' }}>
@@ -403,13 +422,24 @@ export default function WorkersPage() {
                 </div>
               )}
 
-              {!inviteLoading && inviteLink && (
+              {/* ── CONFIRMED STATE ── */}
+              {!inviteLoading && inviteConfirmed && inviteLink && (
                 <>
-                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-secondary)', marginBottom: 'var(--sp-md)' }}>
-                    {t('workers.invite.instructions')}
-                  </p>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-lg)',
+                    padding: '10px 14px', background: 'rgba(34,197,94,0.08)',
+                    borderRadius: 'var(--radius-sm)', border: '1px solid rgba(34,197,94,0.15)',
+                  }}>
+                    <span style={{ fontSize: 18 }}>✓</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-secondary)' }}>
+                      {t('workers.invite.sentConfirmation')} <strong>{inviteWorker.firstName} {inviteWorker.lastName}</strong>
+                    </span>
+                  </div>
 
                   {/* Link copy box */}
+                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {t('workers.invite.shareLink')}
+                  </p>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--sp-lg)' }}>
                     <input
                       className="form-input"
@@ -419,40 +449,42 @@ export default function WorkersPage() {
                       style={{ flex: 1, fontSize: 'var(--fs-sm)', opacity: 0.8 }}
                       onFocus={(e) => e.target.select()}
                     />
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={handleCopyInvite}
-                      style={{ flexShrink: 0 }}
-                    >
+                    <button className="btn btn-primary btn-sm" onClick={handleCopyInvite} style={{ flexShrink: 0 }}>
                       {t('workers.invite.copyLink')}
                     </button>
                   </div>
 
-                  {/* QR code */}
                   {inviteQr && (
                     <div style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         {t('workers.invite.orScanQr')}
                       </p>
-                      <img
-                        src={inviteQr}
-                        alt="Invite QR code"
-                        style={{ width: 160, height: 160, borderRadius: 'var(--radius-md)', display: 'inline-block' }}
-                      />
+                      <img src={inviteQr} alt="Invite QR code" style={{ width: 152, height: 152, borderRadius: 'var(--radius-md)', display: 'inline-block' }} />
                     </div>
                   )}
 
-                  {/* Expiry notice */}
                   <p style={{ marginTop: 'var(--sp-md)', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', textAlign: 'center' }}>
                     {t('workers.invite.expiresIn')}
                   </p>
                 </>
               )}
             </div>
+
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setInviteWorker(null)}>
-                {t('common.buttons.close')}
-              </button>
+              {!inviteConfirmed ? (
+                <>
+                  <button className="btn btn-secondary" onClick={() => setInviteWorker(null)} disabled={inviteLoading}>
+                    {t('common.buttons.cancel')}
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSendInvite} disabled={inviteLoading}>
+                    ✉ {t('workers.invite.sendInvite')}
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-secondary" onClick={() => setInviteWorker(null)}>
+                  {t('common.buttons.close')}
+                </button>
+              )}
             </div>
           </div>
         </div>
