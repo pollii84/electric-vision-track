@@ -179,6 +179,18 @@
       "assignedSite": "Assigned Site",
       "totalHours": "Total Hours"
     },
+    "invite": {
+      "linked": "Linked",
+      "pending": "Invite Pending",
+      "noAccount": "No Account",
+      "sendInvite": "Send Invite",
+      "modalTitle": "Send Invite Link",
+      "generating": "Generating invite link...",
+      "instructions": "Share this link or QR code with the worker. They will use it to create their account.",
+      "copyLink": "Copy Link",
+      "orScanQr": "Or scan QR code",
+      "expiresIn": "Link expires in 7 days"
+    },
     "confirmDelete": "Are you sure you want to delete this worker?",
     "workerSaved": "Worker saved successfully",
     "workerDeleted": "Worker deleted successfully",

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
+import { createInvite } from '@/lib/invites';
+import QRCode from 'qrcode';
 
 const EXPERIENCE_LEVELS = [
   'manager',
@@ -55,7 +57,7 @@ const INITIAL_FORM = {
 export default function WorkersPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
 
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,12 @@ export default function WorkersPage() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
+
+  // Invite state
+  const [inviteWorker, setInviteWorker] = useState(null);
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteQr, setInviteQr] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -123,6 +131,31 @@ export default function WorkersPage() {
     setFormData(INITIAL_FORM);
     setShowModal(false);
   };
+
+  const handleOpenInvite = useCallback(async (worker, e) => {
+    e.stopPropagation();
+    if (!worker.email) return;
+    setInviteWorker(worker);
+    setInviteLink('');
+    setInviteQr('');
+    setInviteLoading(true);
+    try {
+      const token = await createInvite(tenantId, worker.id, worker, user.uid);
+      const link = `${window.location.origin}/invite/${token}`;
+      setInviteLink(link);
+      const qr = await QRCode.toDataURL(link, { width: 200, margin: 2, color: { dark: '#FFCA00', light: '#1F212C' } });
+      setInviteQr(qr);
+    } catch (err) {
+      console.error('Failed to create invite:', err);
+    } finally {
+      setInviteLoading(false);
+    }
+  }, [tenantId, user]);
+
+  const handleCopyInvite = useCallback(() => {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink).catch(() => {});
+  }, [inviteLink]);
 
   if (loading || !tenantId) {
     return (
@@ -284,7 +317,7 @@ export default function WorkersPage() {
                 </span>
               </div>
 
-              {/* Hourly rate */}
+              {/* Hourly rate + invite */}
               <div style={{
                 marginTop: 'auto',
                 paddingTop: 'var(--sp-sm)',
@@ -292,14 +325,137 @@ export default function WorkersPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                gap: 'var(--sp-sm)',
               }}>
                 <span className="text-muted text-sm">{t('workers.fields.hourlyRate')}</span>
                 <span className="font-semibold currency" style={{ color: 'var(--clr-primary)' }}>
                   {worker.hourlyRate} RON/h
                 </span>
               </div>
+
+              {/* Account status + invite button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-sm)' }}>
+                {worker.authUid ? (
+                  <span className="badge badge-success">✓ {t('workers.invite.linked')}</span>
+                ) : worker.inviteStatus === 'pending' ? (
+                  <span className="badge badge-warning">⏳ {t('workers.invite.pending')}</span>
+                ) : (
+                  <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--clr-text-muted)', border: '1px solid var(--clr-border)' }}>
+                    {t('workers.invite.noAccount')}
+                  </span>
+                )}
+                {!worker.authUid && worker.email && (
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={(e) => handleOpenInvite(worker, e)}
+                    aria-label={t('workers.invite.sendInvite')}
+                    style={{ flexShrink: 0 }}
+                  >
+                    ✉ {t('workers.invite.sendInvite')}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {inviteWorker && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setInviteWorker(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-modal-title"
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="invite-modal-title">
+                ✉ {t('workers.invite.modalTitle')}
+              </h3>
+              <button className="modal-close" onClick={() => setInviteWorker(null)} aria-label={t('common.buttons.close')}>✕</button>
+            </div>
+            <div className="modal-body">
+              {/* Worker name */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--sp-md)',
+                padding: '10px 14px', background: 'var(--clr-primary-subtle)',
+                borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,202,0,0.1)',
+              }}>
+                <span style={{ fontSize: 20 }}>👷</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)' }}>
+                    {inviteWorker.firstName} {inviteWorker.lastName}
+                  </div>
+                  <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>{inviteWorker.email}</div>
+                </div>
+              </div>
+
+              {inviteLoading && (
+                <div style={{ textAlign: 'center', padding: 'var(--sp-xl)' }}>
+                  <svg width="32" height="32" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite', color: 'var(--clr-primary)' }}>
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+                  </svg>
+                  <p style={{ marginTop: 12, color: 'var(--clr-text-muted)', fontSize: 'var(--fs-sm)' }}>
+                    {t('workers.invite.generating')}
+                  </p>
+                  <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                </div>
+              )}
+
+              {!inviteLoading && inviteLink && (
+                <>
+                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-secondary)', marginBottom: 'var(--sp-md)' }}>
+                    {t('workers.invite.instructions')}
+                  </p>
+
+                  {/* Link copy box */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--sp-lg)' }}>
+                    <input
+                      className="form-input"
+                      type="text"
+                      value={inviteLink}
+                      readOnly
+                      style={{ flex: 1, fontSize: 'var(--fs-sm)', opacity: 0.8 }}
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleCopyInvite}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {t('workers.invite.copyLink')}
+                    </button>
+                  </div>
+
+                  {/* QR code */}
+                  {inviteQr && (
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {t('workers.invite.orScanQr')}
+                      </p>
+                      <img
+                        src={inviteQr}
+                        alt="Invite QR code"
+                        style={{ width: 160, height: 160, borderRadius: 'var(--radius-md)', display: 'inline-block' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Expiry notice */}
+                  <p style={{ marginTop: 'var(--sp-md)', fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', textAlign: 'center' }}>
+                    {t('workers.invite.expiresIn')}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setInviteWorker(null)}>
+                {t('common.buttons.close')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
