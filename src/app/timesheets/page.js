@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_WORKERS = [];
-
-const DEMO_SITES = [];
-
-const INITIAL_LOGS = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 
 export default function TimesheetsPage() {
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [logs, setLogs] = useState(INITIAL_LOGS);
+  const [logs, setLogs] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   // Form State
@@ -27,8 +27,20 @@ export default function TimesheetsPage() {
     description: '',
   });
 
-  const getWorker = (id) => DEMO_WORKERS.find((w) => w.id === id) || { id: '0', name: 'Unknown', hourlyRate: 0 };
-  const getSite = (id) => DEMO_SITES.find((s) => s.id === id) || { id: '0', name: 'Unknown' };
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubLogs = onTenantCollectionSnapshot(tenantId, 'timesheets', (data) => {
+      setLogs(data || []);
+      setLoading(false);
+    });
+    const unsubWorkers = onTenantCollectionSnapshot(tenantId, 'workers', (data) => setWorkers(data || []));
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', (data) => setSites(data || []));
+    return () => { unsubLogs(); unsubWorkers(); unsubSites(); };
+  }, [tenantId]);
+
+  const getWorker = (id) => workers.find((w) => w.id === id) || { id: '0', name: 'Unknown', hourlyRate: 0 };
+  const getSite = (id) => sites.find((s) => s.id === id) || { id: '0', name: 'Unknown' };
 
   const logsWithCalculations = useMemo(() => {
     return logs.map((log) => {
@@ -52,7 +64,7 @@ export default function TimesheetsPage() {
         computedCost: cost,
       };
     });
-  }, [logs]);
+  }, [logs, workers, sites]);
 
   const weeklySummary = useMemo(() => {
     return logsWithCalculations.reduce(
@@ -72,13 +84,11 @@ export default function TimesheetsPage() {
     setFormData((prev) => ({ ...prev, [field]: val }));
   };
 
-  const handleSaveTimeLog = () => {
-    const selectedWorker = DEMO_WORKERS[Number(formData.workerIndex)];
-    const selectedSite = DEMO_SITES[Number(formData.siteIndex)];
-    if (!selectedWorker || !selectedSite) return;
-
+  const handleSaveTimeLog = async () => {
+    const selectedWorker = workers[Number(formData.workerIndex)];
+    const selectedSite = sites[Number(formData.siteIndex)];
+    if (!selectedWorker || !selectedSite || !tenantId) return;
     const newLog = {
-      id: String(Date.now()),
       workerId: selectedWorker.id,
       siteId: selectedSite.id,
       date: formData.date,
@@ -87,23 +97,35 @@ export default function TimesheetsPage() {
       weekendHours: Number(formData.weekendHours) || 0,
       description: formData.description,
     };
-
-    setLogs((prev) => [newLog, ...prev]);
-    setShowModal(false);
-    setFormData({
-      workerIndex: '0',
-      siteIndex: '0',
-      date: '2026-06-01',
-      standardHours: 8,
-      overtimeHours: 0,
-      weekendHours: 0,
-      description: '',
-    });
+    try {
+      await addTenantDoc(tenantId, 'timesheets', newLog);
+      setShowModal(false);
+    } catch (err) { console.error('Failed to save time log:', err); }
   };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ro-RO').format(value);
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -270,7 +292,7 @@ export default function TimesheetsPage() {
                   value={formData.workerIndex}
                   onChange={(e) => handleFormChange('workerIndex', e.target.value)}
                 >
-                  {DEMO_WORKERS.map((w, index) => (
+                  {workers.map((w, index) => (
                     <option key={w.id} value={index}>
                       {w.name} ({w.hourlyRate} RON/h)
                     </option>
@@ -289,7 +311,7 @@ export default function TimesheetsPage() {
                   value={formData.siteIndex}
                   onChange={(e) => handleFormChange('siteIndex', e.target.value)}
                 >
-                  {DEMO_SITES.map((s, index) => (
+                  {sites.map((s, index) => (
                     <option key={s.id} value={index}>
                       {s.name}
                     </option>

@@ -1,16 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/contexts/ToastContext';
-
-const DEMO_WORKERS = [];
-
-const DEMO_SITES = [];
-
-const INITIAL_TASKS = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc, updateTenantDoc } from '@/lib/firestore';
 
 const COLUMNS = ['todo', 'in_progress', 'quality_review', 'completed'];
 
@@ -30,8 +26,12 @@ const PRIORITY_BADGES = {
 export default function TasksPage() {
   const { t } = useI18n();
   const { addToast } = useToast();
+  const { tenantId } = useAuth();
 
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const [tasks, setTasks] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null); // Clicked task for details modal
   
@@ -56,6 +56,22 @@ export default function TasksPage() {
     dueDate: '2026-06-05',
   });
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubTasks = onTenantCollectionSnapshot(tenantId, 'tasks', (data) => {
+      setTasks(data || []);
+      setLoading(false);
+    });
+    const unsubWorkers = onTenantCollectionSnapshot(tenantId, 'workers', (data) => {
+      setWorkers(data || []);
+    });
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', (data) => {
+      setSites(data || []);
+    });
+    return () => { unsubTasks(); unsubWorkers(); unsubSites(); };
+  }, [tenantId]);
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -65,57 +81,64 @@ export default function TasksPage() {
     setFormData((prev) => ({ ...prev, [field]: val }));
   };
 
-  const handleCreateTask = () => {
-    if (!formData.title.trim()) return;
+  const handleCreateTask = async () => {
+    if (!formData.title.trim() || !tenantId) return;
 
-    const selectedSite = DEMO_SITES[Number(formData.siteIndex)];
-    const selectedWorker = DEMO_WORKERS[Number(formData.workerIndex)];
+    const selectedSite = sites[Number(formData.siteIndex)];
+    const selectedWorker = workers[Number(formData.workerIndex)];
     if (!selectedSite || !selectedWorker) return;
 
-
     const newTask = {
-      id: String(Date.now()),
       title: formData.title,
       desc: formData.desc,
       siteId: selectedSite.id,
       siteName: selectedSite.name,
-      workerName: selectedWorker.name,
+      workerId: selectedWorker.id,
+      workerName: selectedWorker.name || `${selectedWorker.firstName || ''} ${selectedWorker.lastName || ''}`.trim(),
       priority: formData.priority,
       dueDate: formData.dueDate,
       status: 'todo',
-      drawingId: selectedSite.drawingId,
-      drawingName: selectedSite.drawingName,
+      drawingId: selectedSite.drawingId || null,
+      drawingName: selectedSite.drawingName || null,
       photos: [],
-      changeOrders: []
+      changeOrders: [],
     };
 
-    setTasks((prev) => [...prev, newTask]);
-    setShowCreateModal(false);
-    setFormData({
-      title: '',
-      desc: '',
-      siteIndex: '0',
-      workerIndex: '0',
-      priority: 'medium',
-      dueDate: '2026-06-05',
-    });
-    addToast('Task created successfully!', 'success');
+    try {
+      await addTenantDoc(tenantId, 'tasks', newTask);
+      setShowCreateModal(false);
+      setFormData({
+        title: '',
+        desc: '',
+        siteIndex: '0',
+        workerIndex: '0',
+        priority: 'medium',
+        dueDate: '2026-06-05',
+      });
+      addToast('Task created successfully!', 'success');
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    }
   };
 
-  const moveTask = (id, direction, e) => {
-    e.stopPropagation(); // Avoid triggering details modal
+  const moveTask = async (id, direction, e) => {
+    e.stopPropagation();
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const currentIndex = COLUMNS.indexOf(task.status);
+    const nextIndex = currentIndex + direction;
+    if (nextIndex < 0 || nextIndex >= COLUMNS.length) return;
+    const newStatus = COLUMNS[nextIndex];
+
     setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id === id) {
-          const currentIndex = COLUMNS.indexOf(task.status);
-          const nextIndex = currentIndex + direction;
-          if (nextIndex >= 0 && nextIndex < COLUMNS.length) {
-            return { ...task, status: COLUMNS[nextIndex] };
-          }
-        }
-        return task;
-      })
+      prev.map((t) => t.id === id ? { ...t, status: newStatus } : t)
     );
+
+    try {
+      await updateTenantDoc(tenantId, 'tasks', id, { status: newStatus });
+    } catch (err) {
+      console.error('Failed to move task:', err);
+    }
   };
 
   const handleTaskClick = (task) => {
@@ -137,28 +160,24 @@ export default function TasksPage() {
     setSimulatedPhotoUrl(demoPhotos[Math.floor(Math.random() * demoPhotos.length)]);
   };
 
-  const handleSavePhoto = () => {
-    if (!simulatedPhotoUrl || !selectedTask) return;
+  const handleSavePhoto = async () => {
+    if (!simulatedPhotoUrl || !selectedTask || !tenantId) return;
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === selectedTask.id
-          ? { ...t, photos: [...(t.photos || []), { url: simulatedPhotoUrl, date: new Date().toLocaleDateString() }] }
-          : t
-      )
-    );
+    const newPhoto = { url: simulatedPhotoUrl, date: new Date().toLocaleDateString() };
+    const updatedPhotos = [...(selectedTask.photos || []), newPhoto];
 
-    setSelectedTask((prev) => ({
-      ...prev,
-      photos: [...(prev.photos || []), { url: simulatedPhotoUrl, date: new Date().toLocaleDateString() }]
-    }));
-
-    addToast(t('tasksAdditions.photoCaptured'), 'success');
-    setShowCameraSim(false);
+    try {
+      await updateTenantDoc(tenantId, 'tasks', selectedTask.id, { photos: updatedPhotos });
+      setSelectedTask((prev) => ({ ...prev, photos: updatedPhotos }));
+      addToast(t('tasksAdditions.photoCaptured'), 'success');
+      setShowCameraSim(false);
+    } catch (err) {
+      console.error('Failed to save photo:', err);
+    }
   };
 
-  const handleSaveChangeOrder = () => {
-    if (!coHours && !coMaterials) return;
+  const handleSaveChangeOrder = async () => {
+    if (!coHours && !coMaterials || !selectedTask || !tenantId) return;
 
     const newCO = {
       id: `co-${Date.now()}`,
@@ -166,21 +185,10 @@ export default function TasksPage() {
       material: coMaterials || 'N/A',
       materialQty: Number(coMaterialQty) || 0,
       reason: coReason || 'Scope change requested',
-      date: new Date().toLocaleDateString()
+      date: new Date().toLocaleDateString(),
     };
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === selectedTask.id
-          ? { ...t, changeOrders: [...(t.changeOrders || []), newCO] }
-          : t
-      )
-    );
-
-    setSelectedTask((prev) => ({
-      ...prev,
-      changeOrders: [...(prev.changeOrders || []), newCO]
-    }));
+    const updatedCOs = [...(selectedTask.changeOrders || []), newCO];
 
     // Local warehouse stock sync helper
     if (coMaterials) {
@@ -201,13 +209,39 @@ export default function TasksPage() {
       }
     }
 
-    addToast('Task Change Order recorded successfully!', 'success');
-    setShowCOForm(false);
-    setCoHours('');
-    setCoMaterials('');
-    setCoMaterialQty('1');
-    setCoReason('');
+    try {
+      await updateTenantDoc(tenantId, 'tasks', selectedTask.id, { changeOrders: updatedCOs });
+      setSelectedTask((prev) => ({ ...prev, changeOrders: updatedCOs }));
+      addToast('Task Change Order recorded successfully!', 'success');
+      setShowCOForm(false);
+      setCoHours('');
+      setCoMaterials('');
+      setCoMaterialQty('1');
+      setCoReason('');
+    } catch (err) {
+      console.error('Failed to save change order:', err);
+    }
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -392,7 +426,8 @@ export default function TasksPage() {
                   value={formData.siteIndex}
                   onChange={(e) => handleFormChange('siteIndex', e.target.value)}
                 >
-                  {DEMO_SITES.map((site, index) => (
+                  {sites.length === 0 && <option value="" disabled>No sites available</option>}
+                  {sites.map((site, index) => (
                     <option key={site.id} value={index}>{site.name}</option>
                   ))}
                 </select>
@@ -406,8 +441,9 @@ export default function TasksPage() {
                   value={formData.workerIndex}
                   onChange={(e) => handleFormChange('workerIndex', e.target.value)}
                 >
-                  {DEMO_WORKERS.map((worker, index) => (
-                    <option key={worker.id} value={index}>{worker.name}</option>
+                  {workers.length === 0 && <option value="" disabled>No workers available</option>}
+                  {workers.map((worker, index) => (
+                    <option key={worker.id} value={index}>{worker.name || `${worker.firstName || ''} ${worker.lastName || ''}`.trim()}</option>
                   ))}
                 </select>
               </div>

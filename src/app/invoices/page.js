@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_INVOICES = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc, updateTenantDoc } from '@/lib/firestore';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue'];
 
@@ -26,8 +26,10 @@ const INITIAL_FORM = {
 
 export default function InvoicesPage() {
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [invoices, setInvoices] = useState(DEMO_INVOICES);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
@@ -41,6 +43,16 @@ export default function InvoicesPage() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('2026-06-01');
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsub = onTenantCollectionSnapshot(tenantId, 'invoices', (data) => {
+      setInvoices(data || []);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [tenantId]);
+
   const filteredInvoices = useMemo(() => {
     let result = invoices;
 
@@ -52,9 +64,9 @@ export default function InvoicesPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (inv) =>
-          inv.invoiceNumber.toLowerCase().includes(query) ||
-          inv.siteName.toLowerCase().includes(query) ||
-          inv.workStage.toLowerCase().includes(query)
+          (inv.invoiceNumber || '').toLowerCase().includes(query) ||
+          (inv.siteName || '').toLowerCase().includes(query) ||
+          (inv.workStage || '').toLowerCase().includes(query)
       );
     }
 
@@ -74,29 +86,22 @@ export default function InvoicesPage() {
     setAddForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateInvoice = () => {
-    if (!addForm.invoiceNumber.trim() || !addForm.amount) return;
-
+  const handleCreateInvoice = async () => {
+    if (!addForm.invoiceNumber.trim() || !tenantId) return;
     const newInvoice = {
-      id: String(Date.now()),
       invoiceNumber: addForm.invoiceNumber,
       siteName: addForm.siteName,
       workStage: addForm.workStage,
-      amount: Number(addForm.amount),
+      amount: Number(addForm.amount) || 0,
       paidAmount: 0,
-      dueDate: addForm.dueDate || '2026-06-30',
+      dueDate: addForm.dueDate,
       status: 'draft',
     };
-
-    setInvoices((prev) => [newInvoice, ...prev]);
-    setShowAddModal(false);
-    setAddForm({
-      invoiceNumber: `INV-2026-000${invoices.length + 2}`,
-      siteName: '',
-      workStage: '',
-      amount: '',
-      dueDate: '',
-    });
+    try {
+      await addTenantDoc(tenantId, 'invoices', newInvoice);
+      setShowAddModal(false);
+      setAddForm(INITIAL_FORM);
+    } catch (err) { console.error('Failed to create invoice:', err); }
   };
 
   const handleOpenPayment = (invoice) => {
@@ -105,30 +110,23 @@ export default function InvoicesPage() {
     setShowPaymentModal(true);
   };
 
-  const handleRecordPayment = () => {
-    if (!selectedInvoice || !paymentAmount) return;
+  const handleRecordPayment = async () => {
+    if (!selectedInvoice || !paymentAmount || !tenantId) return;
 
     const amt = Number(paymentAmount);
-    setInvoices((prev) =>
-      prev.map((inv) => {
-        if (inv.id === selectedInvoice.id) {
-          const newPaid = inv.paidAmount + amt;
-          let newStatus = inv.status;
-          if (newPaid >= inv.amount) newStatus = 'paid';
-          else if (newPaid > 0) newStatus = 'partial';
+    const newPaidAmount = selectedInvoice.paidAmount + amt;
+    let newStatus = selectedInvoice.status;
+    if (newPaidAmount >= selectedInvoice.amount) newStatus = 'paid';
+    else if (newPaidAmount > 0) newStatus = 'partial';
 
-          return {
-            ...inv,
-            paidAmount: newPaid,
-            status: newStatus,
-          };
-        }
-        return inv;
-      })
-    );
-
-    setShowPaymentModal(false);
-    setSelectedInvoice(null);
+    try {
+      await updateTenantDoc(tenantId, 'invoices', selectedInvoice.id, {
+        paidAmount: newPaidAmount,
+        status: newStatus,
+      });
+      setShowPaymentModal(false);
+      setSelectedInvoice(null);
+    } catch (err) { console.error('Failed to record payment:', err); }
   };
 
   const triggerPrintInvoice = (invoice) => {
@@ -142,6 +140,26 @@ export default function InvoicesPage() {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ro-RO').format(value);
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
