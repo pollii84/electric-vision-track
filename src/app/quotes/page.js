@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_QUOTES = [];
-
-const DEMO_SITES = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc } from '@/lib/firestore';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'accepted', 'rejected', 'converted'];
 
@@ -28,12 +26,28 @@ const INITIAL_FORM = {
 export default function QuotesPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [quotes, setQuotes] = useState(DEMO_QUOTES);
+  const [quotes, setQuotes] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubQuotes = onTenantCollectionSnapshot(tenantId, 'quotes', (data) => {
+      setQuotes(data || []);
+      setLoading(false);
+    });
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', (data) => {
+      setSites(data || []);
+    });
+    return () => { unsubQuotes(); unsubSites(); };
+  }, [tenantId]);
 
   const filteredQuotes = useMemo(() => {
     let result = quotes;
@@ -46,9 +60,9 @@ export default function QuotesPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (q) =>
-          q.quoteNumber.toLowerCase().includes(query) ||
-          q.siteName.toLowerCase().includes(query) ||
-          q.clientName.toLowerCase().includes(query)
+          (q.quoteNumber || '').toLowerCase().includes(query) ||
+          (q.siteName || '').toLowerCase().includes(query) ||
+          (q.clientName || '').toLowerCase().includes(query)
       );
     }
 
@@ -63,37 +77,51 @@ export default function QuotesPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    const selectedSite = DEMO_SITES[Number(formData.siteIndex)];
-    if (!selectedSite || !formData.quoteNumber.trim()) return;
-
-    const newId = String(Date.now());
+  const handleSave = async () => {
+    const selectedSite = sites[Number(formData.siteIndex)];
+    if (!selectedSite || !formData.quoteNumber.trim() || !tenantId) return;
     const newQuote = {
-      id: newId,
       quoteNumber: formData.quoteNumber,
+      siteId: selectedSite.id,
       siteName: selectedSite.name,
       clientName: selectedSite.clientName,
       totalAmount: 0,
       status: 'draft',
       expiryDate: formData.expiryDate || '2026-12-31',
     };
-
-    // Note: in a real app this would write to Firestore. Here we direct the user to the editor.
-    setQuotes((prev) => [newQuote, ...prev]);
-    setShowModal(false);
-    setFormData({
-      quoteNumber: `QT-2026-000${quotes.length + 2}`,
-      siteIndex: '0',
-      expiryDate: '',
-    });
-
-    // Navigate to quote editor for this new quote
-    router.push(`/quotes/${newId}`);
+    try {
+      const newId = await addTenantDoc(tenantId, 'quotes', newQuote);
+      setShowModal(false);
+      setFormData(INITIAL_FORM);
+      router.push(`/quotes/${newId}`);
+    } catch (err) {
+      console.error('Failed to save quote:', err);
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
   };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -272,10 +300,10 @@ export default function QuotesPage() {
                   value={formData.siteIndex}
                   onChange={(e) => handleFormChange('siteIndex', e.target.value)}
                 >
-                  {DEMO_SITES.length === 0 && (
+                  {sites.length === 0 && (
                     <option value="" disabled>No sites available</option>
                   )}
-                  {DEMO_SITES.map((site, index) => (
+                  {sites.map((site, index) => (
                     <option key={site.id} value={index}>
                       {site.name} — {site.clientName}
                     </option>
