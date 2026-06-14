@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_QUOTES = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantDocSnapshot, updateTenantDoc, addTenantDoc } from '@/lib/firestore';
 
 const PRESET_MATERIALS = [
   { name: 'Cablu NYM 3x2.5mm', category: 'Cabluri', unit: 'm', cost: 3.20 },
@@ -38,29 +38,35 @@ export default function QuoteDetailPage() {
   const router = useRouter();
   const { t } = useI18n();
 
+  const { tenantId } = useAuth();
   const quoteId = params.id;
-  const quote = useMemo(() => {
-    return DEMO_QUOTES.find((q) => q.id === quoteId) || { id: quoteId, quoteNumber: `QT-${quoteId || 'NEW'}`, siteName: '', clientName: '', totalAmount: 0, status: 'draft', expiryDate: '' };
-  }, [quoteId]);
 
+  const [quote, setQuote] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('materials');
   const [materials, setMaterials] = useState(INITIAL_MATERIAL_ITEMS);
   const [labor, setLabor] = useState(INITIAL_LABOR_ITEMS);
-  const [targetMargin, setTargetMargin] = useState(25); // default 25%
+  const [targetMargin, setTargetMargin] = useState(25);
   const [saveStatus, setSaveStatus] = useState('');
 
   // Add Item States
   const [newMaterial, setNewMaterial] = useState({ name: '', category: 'Cabluri', qty: '', unit: 'buc', cost: '' });
   const [newLabor, setNewLabor] = useState({ description: '', hours: '', rate: 65 });
 
-  // Load quote specific values
   useEffect(() => {
-    if (quoteId === '2') {
-      setTargetMargin(20);
-    } else if (quoteId === '3') {
-      setTargetMargin(30);
-    }
-  }, [quoteId]);
+    if (!tenantId || !quoteId) return;
+    setLoading(true);
+    const unsub = onTenantDocSnapshot(tenantId, 'quotes', quoteId, (data) => {
+      if (data) {
+        setQuote(data);
+        setMaterials(data.materials || []);
+        setLabor(data.labor || []);
+        if (typeof data.targetMargin === 'number') setTargetMargin(data.targetMargin);
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [tenantId, quoteId]);
 
   // Handle preset dropdown changes
   const handlePresetSelect = (presetIndex) => {
@@ -141,17 +147,42 @@ export default function QuoteDetailPage() {
     setLabor((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!tenantId || !quoteId) return;
     setSaveStatus('loading');
-    setTimeout(() => {
+    try {
+      await updateTenantDoc(tenantId, 'quotes', quoteId, {
+        materials,
+        labor,
+        targetMargin,
+        totalAmount: grandTotal,
+      });
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(''), 3000);
-    }, 800);
+    } catch (err) {
+      console.error('Failed to save quote:', err);
+      setSaveStatus('');
+    }
   };
 
-  const handleConvertToContract = () => {
-    alert(`${t('common.statusMessages.updated')}: Converted quote to contract model.`);
-    router.push('/contracts');
+  const handleConvertToContract = async () => {
+    if (!tenantId || !quote) return;
+    try {
+      const contractNumber = (quote.quoteNumber || 'QT').replace(/^QT/, 'CT');
+      const newId = await addTenantDoc(tenantId, 'contracts', {
+        contractNumber,
+        quoteId,
+        siteId: quote.siteId || null,
+        siteName: quote.siteName || '',
+        clientName: quote.clientName || '',
+        totalAmount: grandTotal,
+        status: 'draft',
+      });
+      await updateTenantDoc(tenantId, 'quotes', quoteId, { status: 'converted' });
+      router.push(`/contracts/${newId}`);
+    } catch (err) {
+      console.error('Failed to convert quote to contract:', err);
+    }
   };
 
   const triggerPrint = () => {
@@ -161,6 +192,26 @@ export default function QuoteDetailPage() {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ro-RO').format(value);
   };
+
+  if (loading || !quote) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
