@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_CONTRACTS = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantDocSnapshot, updateTenantDoc } from '@/lib/firestore';
 
 const STATUS_BADGES = {
   draft: 'badge-neutral',
@@ -21,16 +21,17 @@ export default function ContractDetailPage() {
   const router = useRouter();
   const { t } = useI18n();
 
+  const { tenantId } = useAuth();
   const contractId = params.id;
-  const contract = useMemo(() => {
-    return DEMO_CONTRACTS.find((c) => c.id === contractId) || null;
-  }, [contractId]);
+
+  const [contract, setContract] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Contract state
-  const [status, setStatus] = useState(contract?.status || 'draft');
-  const [signedAt, setSignedAt] = useState(contract?.signedAt || '-');
-  const [ipLog, setIpLog] = useState(contract?.ipLog || '-');
-  const [signatureData, setSignatureData] = useState(contract?.signature || null);
+  const [status, setStatus] = useState('draft');
+  const [signedAt, setSignedAt] = useState('-');
+  const [ipLog, setIpLog] = useState('-');
+  const [signatureData, setSignatureData] = useState(null);
   const [addenda, setAddenda] = useState([]);
   const [showAddendaModal, setShowAddendaModal] = useState(false);
 
@@ -45,6 +46,35 @@ export default function ContractDetailPage() {
   // Canvas Ref & Drawing State
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  useEffect(() => {
+    if (!tenantId || !contractId) return;
+    setLoading(true);
+    const unsub = onTenantDocSnapshot(tenantId, 'contracts', contractId, (data) => {
+      if (data) {
+        setContract(data);
+        setStatus(data.status || 'draft');
+        setSignedAt(data.signedAt || '-');
+        setIpLog(data.ipLog || '-');
+        setSignatureData(data.signature || null);
+        setAddenda(data.addenda || []);
+        if (typeof data.advancePercent === 'number') setAdvancePercent(data.advancePercent);
+        if (typeof data.penaltyPercent === 'number') setPenaltyPercent(data.penaltyPercent);
+        if (typeof data.guaranteeMonths === 'number') setGuaranteeMonths(data.guaranteeMonths);
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [tenantId, contractId]);
+
+  const persist = async (changes) => {
+    if (!tenantId || !contractId) return;
+    try {
+      await updateTenantDoc(tenantId, 'contracts', contractId, changes);
+    } catch (err) {
+      console.error('Failed to update contract:', err);
+    }
+  };
 
   // Initialize Canvas configurations
   useEffect(() => {
@@ -125,13 +155,23 @@ export default function ContractDetailPage() {
   const confirmSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    // Capture Base64 drawing
+
     const dataUrl = canvas.toDataURL();
+    const capturedSignedAt = '2026-06-01 12:57:39';
+    const capturedIpLog = '192.168.1.100';
     setSignatureData(dataUrl);
-    setSignedAt('2026-06-01 12:57:39');
-    setIpLog('192.168.1.100');
+    setSignedAt(capturedSignedAt);
+    setIpLog(capturedIpLog);
     setStatus('active');
+    persist({
+      signature: dataUrl,
+      signedAt: capturedSignedAt,
+      ipLog: capturedIpLog,
+      status: 'active',
+      advancePercent,
+      penaltyPercent,
+      guaranteeMonths,
+    });
   };
 
   const handleAddendaChange = (field, val) => {
@@ -150,7 +190,9 @@ export default function ContractDetailPage() {
       date: '2026-06-01',
     };
 
-    setAddenda((prev) => [...prev, newAdd]);
+    const next = [...addenda, newAdd];
+    setAddenda(next);
+    persist({ addenda: next });
     setShowAddendaModal(false);
     setAddendaForm({ description: '', materials: '', labor: '' });
   };
@@ -158,6 +200,26 @@ export default function ContractDetailPage() {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('ro-RO').format(value);
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   if (!contract) {
     return (
@@ -204,7 +266,7 @@ export default function ContractDetailPage() {
         <div className="page-header-actions" style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
           <button className="btn btn-secondary" onClick={() => window.print()}>{t('quotes.buttons.printPreview')}</button>
           {status === 'draft' && (
-            <button className="btn btn-primary" onClick={() => setStatus('pending_signature')}>
+            <button className="btn btn-primary" onClick={() => { setStatus('pending_signature'); persist({ status: 'pending_signature' }); }}>
               Send for Signing
             </button>
           )}
@@ -373,6 +435,7 @@ export default function ContractDetailPage() {
                     setSignedAt('-');
                     setIpLog('-');
                     setStatus('pending_signature');
+                    persist({ signature: null, signedAt: '-', ipLog: '-', status: 'pending_signature' });
                   }} style={{ alignSelf: 'stretch' }}>
                     Reset Signature
                   </button>
