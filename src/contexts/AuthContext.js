@@ -84,14 +84,14 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         // Fetch user profile from Firestore
         const profile = await fetchUserProfile(firebaseUser.uid);
-        const isAdmin = (await checkSuperAdmin(firebaseUser.uid)) || firebaseUser.email === 'polimoga@gmail.com';
+        const isAdmin = await checkSuperAdmin(firebaseUser.uid);
         
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName || profile?.displayName || '',
           photoURL: firebaseUser.photoURL,
-          role: profile?.role || (firebaseUser.email === 'polimoga@gmail.com' ? 'owner' : 'worker'),
+          role: profile?.role || 'worker',
           tenantId: profile?.tenantId || null,
           phone: profile?.phone || '',
         });

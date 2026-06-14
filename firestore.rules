@@ -85,7 +85,7 @@ service cloud.firestore {
       match /sites/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
         allow create: if isTenantManager(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
 
         // ── Subcollections under site ──
@@ -99,14 +99,14 @@ service cloud.firestore {
         match /materials/{matId} {
           allow read: if isTenantMember(tenantId) || isSuperAdmin();
           allow create: if isTenantMember(tenantId) || isSuperAdmin();
-          allow update: if isTenantMember(tenantId) || isSuperAdmin();
+          allow update: if isTenantManager(tenantId) || isSuperAdmin();
           allow delete: if isTenantManager(tenantId) || isSuperAdmin();
         }
 
         match /tools/{toolId} {
           allow read: if isTenantMember(tenantId) || isSuperAdmin();
           allow create: if isTenantMember(tenantId) || isSuperAdmin();
-          allow update: if isTenantMember(tenantId) || isSuperAdmin();
+          allow update: if isTenantManager(tenantId) || isSuperAdmin();
           allow delete: if isTenantManager(tenantId) || isSuperAdmin();
         }
       }
@@ -121,7 +121,7 @@ service cloud.firestore {
       match /contacts/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
         allow create: if isTenantManager(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }
 
@@ -163,14 +163,14 @@ service cloud.firestore {
       match /stocks/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
         allow create: if isTenantManager(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }
 
       match /equipment/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
         allow create: if isTenantManager(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }
 
@@ -191,7 +191,7 @@ service cloud.firestore {
       match /files/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
         allow create: if isTenantMember(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+        allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }
 
