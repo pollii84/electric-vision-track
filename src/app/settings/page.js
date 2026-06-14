@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import { updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { setGlobalDoc } from '@/lib/firestore';
 import versionInfo from '../../../version.json';
 
 export default function SettingsPage() {
@@ -24,20 +27,25 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (!user?.uid) return;
     setSaveStatus('loading');
-
-    // Simulate saving
-    setTimeout(() => {
+    try {
+      await setGlobalDoc('users', user.uid, { displayName }, true);
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName });
+      }
       if (typeof window !== 'undefined' && isDemo) {
-        // If demo mode, we can locally save the custom display name
         const demoUser = JSON.parse(localStorage.getItem('ev-demo-user') || '{}');
         localStorage.setItem('ev-demo-user', JSON.stringify({ ...demoUser, displayName }));
       }
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(''), 3000);
-    }, 800);
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+      setSaveStatus('');
+    }
   };
 
   const handleCurrencyChange = (newCurrency) => {
