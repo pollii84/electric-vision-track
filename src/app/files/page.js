@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
-
-const DEMO_SITES = [];
-
-const INITIAL_FILES = [];
+import { useAuth } from '@/contexts/AuthContext';
+import { onTenantCollectionSnapshot, addTenantDoc, deleteTenantDoc } from '@/lib/firestore';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const FOLDER_CATEGORIES = ['all', 'plans', 'permits', 'certificates', 'photos'];
 
@@ -14,19 +14,23 @@ const INITIAL_FORM = {
   name: '',
   category: 'plans',
   tags: '',
-  size: '1.5 MB',
   shared: true,
 };
 
 export default function FilesPage() {
   const { t } = useI18n();
+  const { tenantId } = useAuth();
 
-  const [selectedSiteId, setSelectedSiteId] = useState(DEMO_SITES.length > 0 ? DEMO_SITES[0].id : '');
+  const [selectedSiteId, setSelectedSiteId] = useState('');
   const [activeFolder, setActiveFolder] = useState('all');
-  const [files, setFiles] = useState(INITIAL_FILES);
+  const [files, setFiles] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const filteredFiles = useMemo(() => {
     // Filter by site first
@@ -50,34 +54,85 @@ export default function FilesPage() {
     return result;
   }, [files, selectedSiteId, activeFolder, searchQuery]);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    setLoading(true);
+    const unsubFiles = onTenantCollectionSnapshot(tenantId, 'files', (data) => {
+      setFiles(data || []);
+      setLoading(false);
+    });
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', (data) => {
+      setSites(data || []);
+      setSelectedSiteId((cur) => cur || (data && data[0]?.id) || '');
+    });
+    return () => { unsubFiles(); unsubSites(); };
+  }, [tenantId]);
+
   const handleFormChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleUpload = () => {
-    if (!formData.name.trim()) return;
-
-    const newFile = {
-      id: String(Date.now()),
-      siteId: selectedSiteId,
-      name: formData.name.includes('.') ? formData.name : `${formData.name}.pdf`,
-      category: formData.category,
-      date: '2026-06-01',
-      size: formData.size || '1.0 MB',
-      tags: formData.tags ? formData.tags.split(',').map((s) => s.trim()) : [],
-      shared: formData.shared,
-    };
-
-    setFiles((prev) => [newFile, ...prev]);
-    setShowModal(false);
-    setFormData(INITIAL_FORM);
-  };
-
-  const handleDeleteFile = (id) => {
-    if (confirm('Are you sure you want to delete this file? This cannot be undone.')) {
-      setFiles((prev) => prev.filter((f) => f.id !== id));
+  const handleUpload = async () => {
+    if (!selectedFile || !tenantId || !selectedSiteId) return;
+    setUploading(true);
+    try {
+      const safeName = formData.name?.trim() || selectedFile.name;
+      const storagePath = `tenants/${tenantId}/files/${selectedSiteId}/${Date.now()}_${selectedFile.name}`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, selectedFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      await addTenantDoc(tenantId, 'files', {
+        siteId: selectedSiteId,
+        name: safeName,
+        category: formData.category,
+        tags: formData.tags ? formData.tags.split(',').map((s) => s.trim()) : [],
+        size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+        contentType: selectedFile.type || 'application/octet-stream',
+        storagePath,
+        downloadURL,
+        shared: formData.shared || false,
+      });
+      setShowModal(false);
+      setFormData(INITIAL_FORM);
+      setSelectedFile(null);
+    } catch (err) {
+      console.error('File upload failed:', err);
+    } finally {
+      setUploading(false);
     }
   };
+
+  const handleDeleteFile = async (file) => {
+    if (!confirm('Are you sure you want to delete this file? This cannot be undone.') || !tenantId) return;
+    try {
+      if (file.storagePath) {
+        await deleteObject(ref(storage, file.storagePath)).catch(() => {});
+      }
+      await deleteTenantDoc(tenantId, 'files', file.id);
+    } catch (err) {
+      console.error('Failed to delete file:', err);
+    }
+  };
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -104,10 +159,10 @@ export default function FilesPage() {
               setActiveFolder('all');
             }}
           >
-            {DEMO_SITES.length === 0 && (
+            {sites.length === 0 && (
               <option value="">No sites available</option>
             )}
-            {DEMO_SITES.map((site) => (
+            {sites.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.name} — {site.clientName}
               </option>
@@ -224,14 +279,15 @@ export default function FilesPage() {
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button
                               className="btn btn-secondary btn-xs"
-                              onClick={() => alert(`Initiating mock file download for: ${file.name}`)}
+                              onClick={() => file.downloadURL && window.open(file.downloadURL, '_blank')}
                               style={{ padding: '4px 8px' }}
+                              disabled={!file.downloadURL}
                             >
                               ↓
                             </button>
                             <button
                               className="btn btn-danger btn-xs"
-                              onClick={() => handleDeleteFile(file.id)}
+                              onClick={() => handleDeleteFile(file)}
                               style={{ padding: '4px 8px' }}
                             >
                               ✕
@@ -272,10 +328,28 @@ export default function FilesPage() {
             </div>
 
             <div className="modal-body">
-              {/* File Name */}
+              {/* File Picker */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="file-picker">
+                  Select File *
+                </label>
+                <input
+                  id="file-picker"
+                  className="form-input"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setSelectedFile(file);
+                    if (file) handleFormChange('name', file.name);
+                  }}
+                  required
+                />
+              </div>
+
+              {/* File Name (editable, defaulted from picker) */}
               <div className="form-group">
                 <label className="form-label" htmlFor="file-name">
-                  {t('files.fields.fileName')} *
+                  {t('files.fields.fileName')}
                 </label>
                 <input
                   id="file-name"
@@ -284,7 +358,6 @@ export default function FilesPage() {
                   value={formData.name}
                   onChange={(e) => handleFormChange('name', e.target.value)}
                   placeholder="e.g. electrical_layout_ground"
-                  required
                 />
               </div>
 
@@ -320,20 +393,6 @@ export default function FilesPage() {
                   onChange={(e) => handleFormChange('tags', e.target.value)}
                 />
               </div>
-
-              {/* Mock Size */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="file-size">
-                  File Size Estimator
-                </label>
-                <input
-                  id="file-size"
-                  className="form-input"
-                  type="text"
-                  value={formData.size}
-                  onChange={(e) => handleFormChange('size', e.target.value)}
-                />
-              </div>
             </div>
 
             <div className="modal-footer">
@@ -346,9 +405,9 @@ export default function FilesPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleUpload}
-                disabled={!formData.name.trim()}
+                disabled={!selectedFile || uploading}
               >
-                Upload File
+                {uploading ? 'Uploading...' : 'Upload File'}
               </button>
             </div>
           </div>
