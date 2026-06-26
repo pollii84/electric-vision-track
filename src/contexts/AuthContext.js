@@ -85,7 +85,15 @@ export function AuthProvider({ children }) {
         // Fetch user profile from Firestore
         const profile = await fetchUserProfile(firebaseUser.uid);
         const isAdmin = await checkSuperAdmin(firebaseUser.uid);
-        
+
+        if (profile) {
+          fetch('/api/invite/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: firebaseUser.uid }),
+          }).catch((e) => console.error('Invite accept call failed:', e));
+        }
+
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,

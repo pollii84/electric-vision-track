@@ -112,7 +112,8 @@
     "demoMode": "Demo Mode",
     "demoModeDescription": "Running in demo mode. Data is not persisted.",
     "testAccount": "Test Account",
-    "displayName": "Display Name"
+    "displayName": "Display Name",
+    "invitedBanner": "You've been invited — set your password to join your team."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -110,7 +110,8 @@
     "demoMode": "Mod Demo",
     "demoModeDescription": "Rulează în mod demo. Datele nu sunt salvate.",
     "testAccount": "Cont de Test",
-    "displayName": "Nume Afișat"
+    "displayName": "Nume Afișat",
+    "invitedBanner": "Ai fost invitat — setează parola pentru a te alătura echipei."
   },
   "dashboard": {
     "title": "Panou de Control",

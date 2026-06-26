@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 
-export default function LoginPage() {
+function LoginPageInner() {
   const { user, loading, loginWithGoogle, loginWithEmail, resetPassword } = useAuth();
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isInvited = searchParams.get('invited') === '1';
 
   const [mode, setMode] = useState('login'); // 'login' | 'reset'
   
@@ -182,6 +184,23 @@ export default function LoginPage() {
 
       {/* Login card */}
       <div className="login-card glass-card" role="main" style={{ maxWidth: 480 }}>
+        {/* Invite banner */}
+        {isInvited && (
+          <div style={{
+            background: 'rgba(0, 255, 202, 0.08)',
+            border: '1px solid rgba(0, 255, 202, 0.3)',
+            borderRadius: 'var(--radius-sm)',
+            padding: 'var(--sp-sm) var(--sp-md)',
+            marginBottom: 'var(--sp-md)',
+            color: 'var(--clr-primary)',
+            fontSize: 'var(--fs-sm)',
+            fontWeight: 500,
+            textAlign: 'center',
+          }}>
+            ✉️ {t('auth.invitedBanner')}
+          </div>
+        )}
+
         {/* Logo & Header */}
         <div className="login-header">
           <div className="login-logo">
@@ -392,5 +411,13 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   );
 }
