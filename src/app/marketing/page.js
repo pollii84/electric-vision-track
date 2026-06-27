@@ -9,6 +9,8 @@ import { useI18n } from '@/lib/i18n';
    Premium dark-industrial design with glassmorphism & gold accents
    ═══════════════════════════════════════════════════════════ */
 
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'polimoga@gmail.com';
+
 // ── Animated Counter Hook ──
 function useAnimatedCounter(target, duration = 1200, enabled = true) {
   const [value, setValue] = useState(0);
@@ -1163,26 +1165,26 @@ export default function MarketingPage() {
 
           {/* Right: Links */}
           <div style={{ display: 'flex', gap: 24 }}>
-            <a
-              href="#"
+            <Link
+              href="/privacy"
               id="footer-privacy"
               style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)', textDecoration: 'none' }}
               onMouseEnter={(e) => (e.target.style.color = 'var(--clr-primary)')}
               onMouseLeave={(e) => (e.target.style.color = 'var(--clr-text-muted)')}
             >
               {t('marketing.footer.privacy')}
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/terms"
               id="footer-terms"
               style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)', textDecoration: 'none' }}
               onMouseEnter={(e) => (e.target.style.color = 'var(--clr-primary)')}
               onMouseLeave={(e) => (e.target.style.color = 'var(--clr-text-muted)')}
             >
               {t('marketing.footer.terms')}
-            </a>
+            </Link>
             <a
-              href="#"
+              href={`mailto:${CONTACT_EMAIL}`}
               id="footer-contact"
               style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)', textDecoration: 'none' }}
               onMouseEnter={(e) => (e.target.style.color = 'var(--clr-primary)')}
