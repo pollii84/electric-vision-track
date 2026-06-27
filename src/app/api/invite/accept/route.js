@@ -23,9 +23,9 @@ export async function POST(request) {
     }
 
     const workerDoc = workersSnap.docs[0];
-    const { inviteStatus } = workerDoc.data();
+    const workerData = workerDoc.data();
 
-    if (inviteStatus !== 'pending') {
+    if (workerData.inviteStatus !== 'pending') {
       return Response.json({ success: true, alreadyActive: true });
     }
 
@@ -33,6 +33,19 @@ export async function POST(request) {
       inviteStatus: 'active',
       acceptedAt: FieldValue.serverTimestamp(),
     });
+
+    if (workerData.invitedBy) {
+      const workerName = [workerData.firstName, workerData.lastName].filter(Boolean).join(' ') || 'A worker';
+      await adminDb.collection(`tenants/${tenantId}/notifications`).add({
+        recipientUid: workerData.invitedBy,
+        type: 'invite_accepted',
+        title: 'Invite accepted',
+        body: `${workerName} has joined your team.`,
+        link: '/workers',
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     return Response.json({ success: true, alreadyActive: false });
   } catch (err) {

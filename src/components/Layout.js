@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { useBusiness } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import VersionBadge from '@/components/VersionBadge';
 
 const NAV_SECTIONS = [
@@ -79,6 +80,20 @@ export default function Layout({ children }) {
   const { addToast } = useToast();
   const { companies, activeCompanyId, setActiveCompanyId } = useBusiness();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { notifications, unreadCount, markRead, markAll } = useNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handleOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [notifOpen]);
 
   // Role-based route guard
   useEffect(() => {
@@ -176,6 +191,151 @@ export default function Layout({ children }) {
               style={{ height: 49, width: 'auto', cursor: 'pointer' }}
             />
           </Link>
+          {/* Bell — notification button */}
+          <div ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('notifications.title')}
+            </span>
+            <button
+              onClick={() => setNotifOpen((o) => !o)}
+              aria-label={t('notifications.title')}
+              style={{
+                position: 'relative',
+                background: notifOpen ? 'rgba(255,255,255,0.08)' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: unreadCount > 0 ? 'var(--clr-primary)' : 'var(--clr-text-muted)',
+                padding: 6,
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.15s',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: 2,
+                  right: 2,
+                  background: 'var(--clr-danger)',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: 15,
+                  height: 15,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification dropdown panel */}
+            {notifOpen && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+                  onClick={() => setNotifOpen(false)}
+                />
+                <div style={{
+                  position: 'fixed',
+                  left: 252,
+                  top: 16,
+                  width: 320,
+                  maxHeight: 'calc(100vh - 32px)',
+                  background: 'var(--clr-bg-elevated)',
+                  border: '1px solid var(--clr-border)',
+                  borderRadius: 'var(--radius-md)',
+                  zIndex: 999,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                  overflow: 'hidden',
+                }}>
+                  {/* Panel header */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--clr-border)',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: 'var(--clr-text)' }}>
+                      {t('notifications.title')}
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAll}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-xs)', color: 'var(--clr-primary)', fontWeight: 600, padding: '2px 0' }}
+                      >
+                        {t('notifications.markAllRead')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Panel list */}
+                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--clr-text-muted)', fontSize: 'var(--fs-sm)' }}>
+                        {t('notifications.empty')}
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.read) markRead(n.id);
+                            if (n.link) { setNotifOpen(false); window.location.href = n.link; }
+                          }}
+                          style={{
+                            padding: '12px 16px',
+                            borderBottom: '1px solid var(--clr-border)',
+                            background: n.read ? 'transparent' : 'rgba(var(--clr-primary-rgb, 59,130,246),0.06)',
+                            cursor: n.link ? 'pointer' : 'default',
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            {!n.read && (
+                              <span style={{
+                                flexShrink: 0,
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                background: 'var(--clr-primary)',
+                                marginTop: 5,
+                              }} />
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: n.read ? 400 : 600, fontSize: 'var(--fs-sm)', color: 'var(--clr-text)', lineHeight: 1.4, marginBottom: 2 }}>
+                                {n.title}
+                              </div>
+                              {n.body && (
+                                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)', lineHeight: 1.4 }}>
+                                  {n.body}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Company Switcher Dropdown — Owner only */}
           {user?.role === 'owner' && (
             <div style={{ width: '100%', padding: '0 8px' }}>

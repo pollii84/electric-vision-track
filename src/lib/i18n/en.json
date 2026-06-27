@@ -115,6 +115,12 @@
     "displayName": "Display Name",
     "invitedBanner": "You've been invited — set your password to join your team."
   },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet",
+    "inviteAccepted": "Invite accepted"
+  },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}",

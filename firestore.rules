@@ -201,6 +201,17 @@ service cloud.firestore {
         allow update: if isTenantOwner(tenantId) || isSuperAdmin();
         allow delete: if isTenantOwner(tenantId) || isSuperAdmin();
       }
+
+      match /notifications/{notifId} {
+        // Only the recipient can read their own notifications
+        allow read: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+        // Server (Admin SDK) creates; tenant members may create client-side if needed
+        allow create: if isTenantMember(tenantId);
+        // Only recipient can mark as read / update
+        allow update: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+        // Recipient can delete their own
+        allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+      }
     }
   }
 }

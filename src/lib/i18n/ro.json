@@ -113,6 +113,12 @@
     "displayName": "Nume Afișat",
     "invitedBanner": "Ai fost invitat — setează parola pentru a te alătura echipei."
   },
+  "notifications": {
+    "title": "Notificări",
+    "markAllRead": "Marchează toate ca citite",
+    "empty": "Nicio notificare încă",
+    "inviteAccepted": "Invitație acceptată"
+  },
   "dashboard": {
     "title": "Panou de Control",
     "welcome": "Bine ai venit, {name}",
