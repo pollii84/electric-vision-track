@@ -6,7 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
-import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc, db } from '@/lib/firestore';
+import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc, onGlobalCollectionSnapshot, db } from '@/lib/firestore';
+import { useToast } from '@/contexts/ToastContext';
 import { collection, addDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const STATUS_BADGES = {
@@ -31,7 +32,8 @@ export default function SiteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { t } = useI18n();
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
+  const { addToast } = useToast();
 
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,13 @@ export default function SiteDetailPage() {
   const [showAddLogModal, setShowAddLogModal] = useState(false);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
   const [showAddToolModal, setShowAddToolModal] = useState(false);
+
+  // contractor collaboration state
+  const [collaborations, setCollaborations] = useState([]);
+  const [collabEmail, setCollabEmail] = useState('');
+  const [collabResolved, setCollabResolved] = useState(null);
+  const [collabError, setCollabError] = useState('');
+  const [collabLoading, setCollabLoading] = useState(false);
 
   // modal form states
   const [logForm, setLogForm] = useState({
@@ -155,6 +164,15 @@ export default function SiteDetailPage() {
     return () => unsubscribe();
   }, [tenantId]);
 
+  // Subscribe to collaborations for this site (client reads only ownerTenantId docs; siteId filter is client-side)
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    const unsub = onGlobalCollectionSnapshot('collaborations', (docs) => {
+      setCollaborations(docs.filter((d) => d.siteId === params.id));
+    }, { filters: [{ field: 'ownerTenantId', op: '==', value: tenantId }] });
+    return unsub;
+  }, [tenantId, params.id]);
+
   const handleFormChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -248,6 +266,60 @@ export default function SiteDetailPage() {
       });
     } catch (err) {
       console.error('Failed to add tool:', err);
+    }
+  };
+
+  const handleResolveContractor = async () => {
+    if (!collabEmail.trim()) return;
+    setCollabLoading(true);
+    setCollabError('');
+    setCollabResolved(null);
+    try {
+      const res = await fetch('/api/collab/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: collabEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setCollabError(t('collab.emailNotFound'));
+      } else {
+        setCollabResolved(data);
+      }
+    } catch {
+      setCollabError(t('collab.emailNotFound'));
+    } finally {
+      setCollabLoading(false);
+    }
+  };
+
+  const handleCreateCollab = async () => {
+    if (!collabResolved || !tenantId || !params.id || !user?.uid) return;
+    setCollabLoading(true);
+    try {
+      const res = await fetch('/api/collab/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerTenantId: tenantId,
+          siteId: params.id,
+          contractorTenantId: collabResolved.tenantId,
+          createdBy: user.uid,
+        }),
+      });
+      const data = await res.json();
+      if (data.alreadyExists) {
+        addToast(t('collab.alreadyLinked'), 'info');
+      } else if (data.success) {
+        addToast(t('collab.linkSuccess'), 'success');
+      }
+      setCollabEmail('');
+      setCollabResolved(null);
+      setCollabError('');
+    } catch {
+      addToast(t('collab.emailNotFound'), 'error');
+    } finally {
+      setCollabLoading(false);
     }
   };
 
@@ -395,7 +467,7 @@ export default function SiteDetailPage() {
 
       {/* Tabs list */}
       <div className="tabs" role="tablist">
-        {['overview', 'timeLogs', 'materials', 'tools'].map((tab) => (
+        {['overview', 'timeLogs', 'materials', 'tools', 'contractors'].map((tab) => (
           <button
             key={tab}
             className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -643,6 +715,115 @@ export default function SiteDetailPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Tab 5: Contractors */}
+        {activeTab === 'contractors' && (
+          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+            <h3 style={{ margin: 0 }}>🤝 {t('collab.sectionTitle')}</h3>
+
+            {/* Add contractor — owner/manager only */}
+            {(user?.role === 'owner' || user?.role === 'manager') && (
+              <div style={{
+                background: 'var(--clr-bg-elevated)',
+                borderRadius: 'var(--radius-sm)',
+                padding: 'var(--sp-md)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--sp-sm)',
+              }}>
+                <div className="text-muted text-sm" style={{ fontWeight: 600 }}>
+                  {t('collab.addContractor')}
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexWrap: 'wrap' }}>
+                  <input
+                    className="form-input"
+                    type="email"
+                    placeholder={t('collab.contractorEmailPlaceholder')}
+                    value={collabEmail}
+                    onChange={(e) => {
+                      setCollabEmail(e.target.value);
+                      setCollabResolved(null);
+                      setCollabError('');
+                    }}
+                    style={{ flex: 1, minWidth: 220 }}
+                  />
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleResolveContractor}
+                    disabled={!collabEmail.trim() || collabLoading}
+                  >
+                    {collabLoading && !collabResolved ? t('collab.resolving') : t('collab.resolveBtn')}
+                  </button>
+                </div>
+
+                {collabError && (
+                  <div style={{ color: 'var(--clr-danger)', fontSize: 'var(--fs-sm)' }}>
+                    {collabError}
+                  </div>
+                )}
+
+                {collabResolved && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 'var(--sp-sm)',
+                    padding: '10px 12px',
+                    background: 'rgba(34, 197, 94, 0.08)',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}>
+                    <span style={{ fontWeight: 600, color: 'var(--clr-text)' }}>
+                      {t('collab.linkPrompt').replace('{name}', collabResolved.companyName)}
+                    </span>
+                    <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => { setCollabResolved(null); setCollabEmail(''); }}
+                      >
+                        {t('common.buttons.cancel')}
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={handleCreateCollab}
+                        disabled={collabLoading}
+                      >
+                        {t('collab.confirmLink')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Linked contractors list */}
+            {collaborations.length === 0 ? (
+              <div className="text-muted text-sm" style={{ padding: 'var(--sp-sm) 0' }}>
+                {t('collab.noContractors')}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
+                {collaborations.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      background: 'var(--clr-bg-elevated)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div className="font-semibold">{c.contractorName}</div>
+                    <span className="badge badge-success">{t('collab.activeStatus')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

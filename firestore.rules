@@ -213,5 +213,16 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
       }
     }
+
+    // ── Cross-tenant collaborations (top-level, not tenant-nested) ──
+    match /collaborations/{collabId} {
+      // Either party may read their own collaborations
+      allow read: if isAuthenticated() && (
+        isTenantMember(resource.data.ownerTenantId) ||
+        isTenantMember(resource.data.contractorTenantId)
+      );
+      // All writes go through server-side API routes (Admin SDK)
+      allow create, update, delete: if false;
+    }
   }
 }

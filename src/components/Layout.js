@@ -51,6 +51,7 @@ const NAV_SECTIONS = [
     items: [
       { key: 'contacts', href: '/contacts', icon: '👥' },
       { key: 'files', href: '/files', icon: '📁' },
+      { key: 'collaborations', href: '/collaborations', icon: '🤝' },
       { key: 'settings', href: '/settings', icon: '⚙️' },
       { key: 'companies', href: '/companies', icon: '🏢' },
     ],
@@ -146,10 +147,10 @@ export default function Layout({ children }) {
           return item.key !== 'companies';
         }
         
-        // Supervisor cannot see companies and financial pipeline
+        // Supervisor cannot see companies, financial pipeline, or collaborations
         if (role === 'supervisor') {
           const isFinancial = ['quotes', 'offers', 'orders', 'contracts', 'invoices', 'purchases'].includes(item.key);
-          return item.key !== 'companies' && !isFinancial;
+          return item.key !== 'companies' && item.key !== 'collaborations' && !isFinancial;
         }
         
         // Worker can only see general, sites, tasks, timesheets, files, settings
