@@ -6,11 +6,7 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
-import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc } from '@/lib/firestore';
-
-const DEMO_ASSIGNED_SITES = [];
-
-const DEMO_TIME_LOGS = [];
+import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc, onTenantCollectionSnapshot } from '@/lib/firestore';
 
 const EXPERIENCE_LEVELS = [
   'manager',
@@ -43,6 +39,9 @@ export default function WorkerDetailPage() {
   const [worker, setWorker] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [tasks, setTasks] = useState([]);
+  const [timesheets, setTimesheets] = useState([]);
+  const [sites, setSites] = useState([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -76,6 +75,18 @@ export default function WorkerDetailPage() {
       setLoading(false);
     });
     return () => unsubscribe();
+  }, [tenantId, params.id]);
+
+  useEffect(() => {
+    if (!tenantId || !params.id) return;
+    const unsubTasks = onTenantCollectionSnapshot(tenantId, 'tasks', setTasks, {
+      filters: [{ field: 'workerId', op: '==', value: params.id }],
+    });
+    const unsubTimesheets = onTenantCollectionSnapshot(tenantId, 'timesheets', setTimesheets, {
+      filters: [{ field: 'workerId', op: '==', value: params.id }],
+    });
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', setSites);
+    return () => { unsubTasks(); unsubTimesheets(); unsubSites(); };
   }, [tenantId, params.id]);
 
   const handleFormChange = (field, value) => {
@@ -143,9 +154,57 @@ export default function WorkerDetailPage() {
   }
 
   const initials = `${worker.firstName?.[0] || ''}${worker.lastName?.[0] || ''}`.toUpperCase();
-  const demoHours = DEMO_TIME_LOGS.reduce((sum, log) => sum + log.hours, 0);
-  const demoSitesCount = DEMO_ASSIGNED_SITES.length;
-  const demoEarned = (worker.hourlyRate || 0) * demoHours;
+
+  const siteNameById = useMemo(() => {
+    const map = {};
+    sites.forEach((s) => { map[s.id] = s.name; });
+    return map;
+  }, [sites]);
+
+  const assignedSites = useMemo(() => {
+    const siteMap = {};
+    tasks.forEach((task) => {
+      if (!task.siteId) return;
+      if (!siteMap[task.siteId]) {
+        siteMap[task.siteId] = { siteId: task.siteId, taskCount: 0, since: task.date || '' };
+      }
+      siteMap[task.siteId].taskCount += 1;
+      if (task.date && (!siteMap[task.siteId].since || task.date < siteMap[task.siteId].since)) {
+        siteMap[task.siteId].since = task.date;
+      }
+    });
+    timesheets.forEach((ts) => {
+      if (!ts.siteId) return;
+      if (siteMap[ts.siteId] && ts.date && ts.date < siteMap[ts.siteId].since) {
+        siteMap[ts.siteId].since = ts.date;
+      }
+    });
+    return Object.values(siteMap).map((entry) => ({
+      ...entry,
+      name: siteNameById[entry.siteId] || 'Unknown site',
+    }));
+  }, [tasks, timesheets, siteNameById]);
+
+  const totalHoursThisMonth = useMemo(() => {
+    const now = new Date();
+    const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return timesheets
+      .filter((ts) => ts.date && ts.date.startsWith(prefix))
+      .reduce((sum, ts) => sum + (Number(ts.standardHours) || 0) + (Number(ts.overtimeHours) || 0) + (Number(ts.weekendHours) || 0), 0);
+  }, [timesheets]);
+
+  const earnedThisMonth = totalHoursThisMonth * (worker.hourlyRate || 0);
+
+  const recentTimeLogs = useMemo(() => {
+    return [...timesheets]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      .slice(0, 15)
+      .map((ts) => ({
+        ...ts,
+        siteName: siteNameById[ts.siteId] || '—',
+        totalHours: (Number(ts.standardHours) || 0) + (Number(ts.overtimeHours) || 0) + (Number(ts.weekendHours) || 0),
+      }));
+  }, [timesheets, siteNameById]);
 
   return (
     <Layout>
@@ -264,17 +323,17 @@ export default function WorkerDetailPage() {
       <div className="content-grid grid-cols-3" style={{ marginBottom: 'var(--sp-lg)' }}>
         <div className="glass-card stat-card primary">
           <div className="stat-icon">⏱️</div>
-          <div className="stat-value">{demoHours}h</div>
+          <div className="stat-value">{totalHoursThisMonth}h</div>
           <div className="stat-label">{t('workers.stats.totalHoursMonth')}</div>
         </div>
         <div className="glass-card stat-card accent">
           <div className="stat-icon">🏗️</div>
-          <div className="stat-value">{demoSitesCount}</div>
+          <div className="stat-value">{assignedSites.length}</div>
           <div className="stat-label">{t('workers.stats.assignedSites')}</div>
         </div>
         <div className="glass-card stat-card success">
           <div className="stat-icon">💰</div>
-          <div className="stat-value currency">{demoEarned.toLocaleString()}</div>
+          <div className="stat-value currency">{earnedThisMonth.toLocaleString()}</div>
           <div className="stat-label">{t('workers.stats.earnedThisMonth')} (RON)</div>
         </div>
       </div>
@@ -289,25 +348,25 @@ export default function WorkerDetailPage() {
             <thead>
               <tr>
                 <th>{t('workers.detail.site')}</th>
-                <th>{t('workers.detail.role')}</th>
+                <th>{t('workers.detail.taskCount')}</th>
                 <th>{t('workers.detail.since')}</th>
               </tr>
             </thead>
             <tbody>
-              {DEMO_ASSIGNED_SITES.length === 0 ? (
+              {assignedSites.length === 0 ? (
                 <tr>
                   <td colSpan="3" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
                     No sites assigned yet.
                   </td>
                 </tr>
               ) : (
-                DEMO_ASSIGNED_SITES.map((site) => (
-                  <tr key={site.id}>
+                assignedSites.map((site) => (
+                  <tr key={site.siteId}>
                     <td className="font-semibold">{site.name}</td>
                     <td>
-                      <span className="badge badge-accent">{site.role}</span>
+                      <span className="badge badge-accent">{site.taskCount}</span>
                     </td>
-                    <td className="text-muted">{site.since}</td>
+                    <td className="text-muted">{site.since || '—'}</td>
                   </tr>
                 ))
               )}
@@ -315,20 +374,20 @@ export default function WorkerDetailPage() {
           </table>
         </div>
         <div className="mobile-card-list mobile-only" style={{ padding: '0 var(--sp-md) var(--sp-md)' }}>
-          {DEMO_ASSIGNED_SITES.length === 0 ? (
+          {assignedSites.length === 0 ? (
             <div className="text-muted text-sm" style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
               No sites assigned yet.
             </div>
           ) : (
-            DEMO_ASSIGNED_SITES.map((site) => (
-              <div key={site.id} className="mobile-card-item">
+            assignedSites.map((site) => (
+              <div key={site.siteId} className="mobile-card-item">
                 <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                   <div style={{ color: 'var(--clr-text)' }}>{site.name}</div>
-                  <span className="badge badge-accent">{site.role}</span>
+                  <span className="badge badge-accent">{site.taskCount}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">{t('workers.detail.since')}</span>
-                  <span className="mobile-card-value">{site.since}</span>
+                  <span className="mobile-card-value">{site.since || '—'}</span>
                 </div>
               </div>
             ))
@@ -352,20 +411,20 @@ export default function WorkerDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {DEMO_TIME_LOGS.length === 0 ? (
+              {recentTimeLogs.length === 0 ? (
                 <tr>
                   <td colSpan="4" style={{ textAlign: 'center', padding: 'var(--sp-xl)', color: 'var(--clr-text-muted)' }}>
                     No time logs recorded yet.
                   </td>
                 </tr>
               ) : (
-                DEMO_TIME_LOGS.map((log) => (
+                recentTimeLogs.map((log) => (
                   <tr key={log.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>{log.date}</td>
-                    <td className="font-semibold">{log.site}</td>
+                    <td className="font-semibold">{log.siteName}</td>
                     <td>
                       <span className="font-semibold" style={{ color: 'var(--clr-primary)' }}>
-                        {log.hours}h
+                        {log.totalHours}h
                       </span>
                     </td>
                     <td className="text-muted">{log.description}</td>
@@ -376,16 +435,16 @@ export default function WorkerDetailPage() {
           </table>
         </div>
         <div className="mobile-card-list mobile-only" style={{ padding: '0 var(--sp-md) var(--sp-md)' }}>
-          {DEMO_TIME_LOGS.length === 0 ? (
+          {recentTimeLogs.length === 0 ? (
             <div className="text-muted text-sm" style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
               No time logs recorded yet.
             </div>
           ) : (
-            DEMO_TIME_LOGS.map((log) => (
+            recentTimeLogs.map((log) => (
               <div key={log.id} className="mobile-card-item">
                 <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '6px', marginBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <div style={{ color: 'var(--clr-text)' }}>{log.site}</div>
-                  <div style={{ color: 'var(--clr-primary)' }}>{log.hours}h</div>
+                  <div style={{ color: 'var(--clr-text)' }}>{log.siteName}</div>
+                  <div style={{ color: 'var(--clr-primary)' }}>{log.totalHours}h</div>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">{t('workers.detail.date')}</span>
