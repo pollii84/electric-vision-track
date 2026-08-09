@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/contexts/ToastContext';
-import ClientAutocomplete, { getContactDisplayName } from '@/components/ClientAutocomplete';
 import { onTenantCollectionSnapshot, addTenantDoc, updateTenantDoc } from '@/lib/firestore';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue'];
@@ -20,13 +18,15 @@ const STATUS_BADGES = {
   overdue: 'badge-danger',
 };
 
-const INITIAL_FORM = {
-  invoiceNumber: '',
-  siteId: '',
+const BLANK_INVOICE = {
+  siteId: null,
+  siteName: '',
   workStage: '',
-  amount: '',
+  amount: 0,
+  paidAmount: 0,
   dueDate: '',
-  clientId: '',
+  status: 'draft',
+  clientId: null,
   clientName: '',
   clientEmail: '',
   clientAddress: '',
@@ -37,23 +37,18 @@ export default function InvoicesPage() {
   const { t } = useI18n();
   const router = useRouter();
   const { tenantId } = useAuth();
-  const { addToast } = useToast();
 
   const [invoices, setInvoices] = useState([]);
-  const [sites, setSites] = useState([]);
-  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [creating, setCreating] = useState(false);
 
   // Modal States
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Form States
-  const [addForm, setAddForm] = useState(INITIAL_FORM);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -64,9 +59,7 @@ export default function InvoicesPage() {
       setInvoices(data || []);
       setLoading(false);
     });
-    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', setSites);
-    const unsubContacts = onTenantCollectionSnapshot(tenantId, 'contacts', setContacts);
-    return () => { unsub(); unsubSites(); unsubContacts(); };
+    return () => unsub();
   }, [tenantId]);
 
   const filteredInvoices = useMemo(() => {
@@ -100,86 +93,44 @@ export default function InvoicesPage() {
     return diffDays > 0 ? diffDays : 0;
   };
 
-  const handleAddChange = (field, value) => {
-    setAddForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const nextInvoiceNumber = () => `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(4, '0')}`;
 
-  const handleSelectClient = (contact) => {
-    setAddForm((prev) => ({
-      ...prev,
-      clientId: contact.id,
-      clientName: getContactDisplayName(contact),
-      clientEmail: contact.email || '',
-      clientAddress: contact.address || '',
-    }));
-  };
-
-  const handleCreateClient = async (name) => {
-    if (!name || !tenantId) return;
+  // Both creation paths follow the same model: create a bare invoice doc
+  // (blank, or pre-filled from a template) and land on the full invoice
+  // detail page (/invoices/[id]) — that page already has every real field
+  // (client search, site, line items, VAT breakdown). Neither path asks
+  // for anything in a modal beyond picking a template to start from.
+  const createAndOpen = async (overrides = {}) => {
+    if (!tenantId || creating) return;
+    setCreating(true);
     try {
-      const id = await addTenantDoc(tenantId, 'contacts', {
-        type: 'client',
-        company: name,
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-        address: '',
+      const id = await addTenantDoc(tenantId, 'invoices', {
+        invoiceNumber: nextInvoiceNumber(),
+        ...BLANK_INVOICE,
+        ...overrides,
       });
-      setAddForm((prev) => ({ ...prev, clientId: id, clientName: name, clientEmail: '', clientAddress: '' }));
-      addToast(t('invoices.clientSearch.created'), 'success');
+      router.push(`/invoices/${id}`);
     } catch (err) {
-      console.error('Failed to create client contact:', err);
+      console.error('Failed to create invoice:', err);
+      setCreating(false);
     }
   };
 
-  const nextInvoiceNumber = () => `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(4, '0')}`;
+  const handleCreateInvoice = () => createAndOpen();
 
-  const handleCreateInvoice = async () => {
-    if (!addForm.invoiceNumber.trim() || !tenantId) return;
-    const site = sites.find((s) => s.id === addForm.siteId);
-    const newInvoice = {
-      invoiceNumber: addForm.invoiceNumber,
-      siteId: addForm.siteId || null,
-      siteName: site?.name || '',
-      workStage: addForm.workStage,
-      amount: Number(addForm.amount) || 0,
-      paidAmount: 0,
-      dueDate: addForm.dueDate,
-      status: 'draft',
-      clientId: addForm.clientId || null,
-      clientName: addForm.clientName || '',
-      clientEmail: addForm.clientEmail || '',
-      clientAddress: addForm.clientAddress || '',
-      lineItems: addForm.lineItems || [],
-    };
-    try {
-      const id = await addTenantDoc(tenantId, 'invoices', newInvoice);
-      setShowAddModal(false);
-      setAddForm(INITIAL_FORM);
-      addToast(addForm.lineItems?.length ? t('invoices.templateCreated') : t('invoices.detail.saved'), 'success');
-      router.push(`/invoices/${id}`);
-    } catch (err) { console.error('Failed to create invoice:', err); }
-  };
-
-  // "Use a Template" picker: selecting a past invoice pre-fills the SAME
-  // create-invoice modal (not an instant silent clone) so the user reviews/
-  // adjusts number, due date, and amount before saving.
   const handlePickTemplate = (invoice) => {
-    setAddForm({
-      invoiceNumber: nextInvoiceNumber(),
-      siteId: invoice.siteId || '',
+    setShowTemplateModal(false);
+    createAndOpen({
+      siteId: invoice.siteId || null,
+      siteName: invoice.siteName || '',
       workStage: invoice.workStage || '',
-      amount: invoice.amount || '',
-      dueDate: '',
-      clientId: invoice.clientId || '',
+      amount: invoice.amount || 0,
+      clientId: invoice.clientId || null,
       clientName: invoice.clientName || '',
       clientEmail: invoice.clientEmail || '',
       clientAddress: invoice.clientAddress || '',
       lineItems: invoice.lineItems || [],
     });
-    setShowTemplateModal(false);
-    setShowAddModal(true);
   };
 
   const handleOpenPayment = (invoice) => {
@@ -248,18 +199,14 @@ export default function InvoicesPage() {
           <button
             className="btn btn-secondary"
             onClick={() => setShowTemplateModal(true)}
+            disabled={creating}
           >
             📋 {t('invoices.useTemplateHeaderBtn')}
           </button>
           <button
             className="btn btn-primary"
-            onClick={() => {
-              setAddForm({
-                ...INITIAL_FORM,
-                invoiceNumber: nextInvoiceNumber(),
-              });
-              setShowAddModal(true);
-            }}
+            onClick={handleCreateInvoice}
+            disabled={creating}
           >
             <span>+</span> {t('invoices.createInvoice')}
           </button>
@@ -526,144 +473,6 @@ export default function InvoicesPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowTemplateModal(false)}>
                 {t('common.buttons.cancel')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Invoice Modal */}
-      {showAddModal && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowAddModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="add-invoice-title"
-        >
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title" id="add-invoice-title">
-                {t('invoices.createInvoice')}
-              </h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowAddModal(false)}
-                aria-label={t('common.buttons.close')}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body">
-              {/* Invoice Number */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-number">
-                  {t('invoices.fields.invoiceNumber')} *
-                </label>
-                <input
-                  id="invoice-number"
-                  className="form-input"
-                  type="text"
-                  value={addForm.invoiceNumber}
-                  onChange={(e) => handleAddChange('invoiceNumber', e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Client typeahead */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-client">
-                  {t('invoices.fields.client')}
-                </label>
-                <ClientAutocomplete
-                  inputId="invoice-client"
-                  contacts={contacts}
-                  value={addForm.clientName}
-                  onChange={(text) => setAddForm((prev) => ({ ...prev, clientName: text, clientId: '' }))}
-                  onSelect={handleSelectClient}
-                  onCreateNew={handleCreateClient}
-                />
-              </div>
-
-              {/* Site Selection */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-site">
-                  {t('quotes.fields.site')}
-                </label>
-                <select
-                  id="invoice-site"
-                  className="form-select"
-                  value={addForm.siteId}
-                  onChange={(e) => handleAddChange('siteId', e.target.value)}
-                >
-                  <option value="">-- Select Site --</option>
-                  {sites.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Billing Stage / Phase */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-stage">
-                  {t('invoices.fields.workStage')}
-                </label>
-                <input
-                  id="invoice-stage"
-                  className="form-input"
-                  type="text"
-                  value={addForm.workStage}
-                  onChange={(e) => handleAddChange('workStage', e.target.value)}
-                  placeholder="e.g. Phase 1: Cabling Billing"
-                />
-              </div>
-
-              {/* Amount */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-amount">
-                  {t('invoices.fields.amount')} (RON) *
-                </label>
-                <input
-                  id="invoice-amount"
-                  className="form-input"
-                  type="number"
-                  min="1"
-                  step="any"
-                  value={addForm.amount}
-                  onChange={(e) => handleAddChange('amount', e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Due Date */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="invoice-due">
-                  {t('invoices.fields.dueDate')}
-                </label>
-                <input
-                  id="invoice-due"
-                  className="form-input"
-                  type="date"
-                  value={addForm.dueDate}
-                  onChange={(e) => handleAddChange('dueDate', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowAddModal(false)}
-              >
-                {t('common.buttons.cancel')}
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleCreateInvoice}
-                disabled={!addForm.invoiceNumber.trim() || !addForm.amount}
-              >
-                {t('common.buttons.save')}
               </button>
             </div>
           </div>
