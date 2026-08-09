@@ -118,43 +118,10 @@ export default function WorkerDetailPage() {
     }
   };
 
-  if (loading || !tenantId) {
-    return (
-      <Layout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <div className="spinner" aria-label={t('common.loading')}>
-            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
-              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
-        <style jsx global>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </Layout>
-    );
-  }
-
-  if (!worker) {
-    return (
-      <Layout>
-        <div className="empty-state">
-          <div className="empty-state-icon">👷</div>
-          <div className="empty-state-title">{t('workers.detail.notFound')}</div>
-          <div className="empty-state-desc">{t('workers.detail.notFoundDescription')}</div>
-          <Link href="/workers" className="btn btn-primary">
-            {t('common.buttons.back')}
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
-
-  const initials = `${worker.firstName?.[0] || ''}${worker.lastName?.[0] || ''}`.toUpperCase();
-
+  // These must run on every render, before any early return below (Rules of
+  // Hooks) — they only touch tasks/timesheets/sites state, which are always
+  // arrays (never conditionally skipped), so it's safe to compute them before
+  // `worker` itself is known to exist.
   const siteNameById = useMemo(() => {
     const map = {};
     sites.forEach((s) => { map[s.id] = s.name; });
@@ -193,7 +160,10 @@ export default function WorkerDetailPage() {
       .reduce((sum, ts) => sum + (Number(ts.standardHours) || 0) + (Number(ts.overtimeHours) || 0) + (Number(ts.weekendHours) || 0), 0);
   }, [timesheets]);
 
-  const earnedThisMonth = totalHoursThisMonth * (worker.hourlyRate || 0);
+  // worker may still be null here (not loaded yet) — this is a plain
+  // derived value, not a hook, so it's fine below the early returns too,
+  // but keeping it next to totalHoursThisMonth needs a null-safe read.
+  const earnedThisMonth = totalHoursThisMonth * (worker?.hourlyRate || 0);
 
   const recentTimeLogs = useMemo(() => {
     return [...timesheets]
@@ -205,6 +175,43 @@ export default function WorkerDetailPage() {
         totalHours: (Number(ts.standardHours) || 0) + (Number(ts.overtimeHours) || 0) + (Number(ts.weekendHours) || 0),
       }));
   }, [timesheets, siteNameById]);
+
+  if (loading || !tenantId) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner" aria-label={t('common.loading')}>
+            <svg width="40" height="40" viewBox="0 0 40 40" style={{ animation: 'spin 1s linear infinite' }}>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--clr-primary)" strokeWidth="3" strokeDasharray="80" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </Layout>
+    );
+  }
+
+  if (!worker) {
+    return (
+      <Layout>
+        <div className="empty-state">
+          <div className="empty-state-icon">👷</div>
+          <div className="empty-state-title">{t('workers.detail.notFound')}</div>
+          <div className="empty-state-desc">{t('workers.detail.notFoundDescription')}</div>
+          <Link href="/workers" className="btn btn-primary">
+            {t('common.buttons.back')}
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  const initials = `${worker.firstName?.[0] || ''}${worker.lastName?.[0] || ''}`.toUpperCase();
 
   return (
     <Layout>
