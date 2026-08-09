@@ -88,10 +88,10 @@ export default function DashboardPage() {
     const activeSites = (sites || []).filter(s => s.status === 'in_progress').length;
     const totalWorkers = (workers || []).length;
     return [
-      { icon: '🏗️', value: String(activeSites), labelKey: 'dashboard.stats.activeSites', change: '+2 this month', theme: 'primary' },
-      { icon: '👷', value: String(totalWorkers), labelKey: 'dashboard.stats.totalWorkers', change: '+5', theme: 'accent' },
-      { icon: '⏱️', value: '0', labelKey: 'dashboard.stats.hoursThisWeek', change: '', theme: 'success' },
-      { icon: '💰', value: '0 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '', theme: 'primary' },
+      { icon: '🏗️', value: String(activeSites), labelKey: 'dashboard.stats.activeSites', change: '+2 this month', theme: 'primary', href: '/sites' },
+      { icon: '👷', value: String(totalWorkers), labelKey: 'dashboard.stats.totalWorkers', change: '+5', theme: 'accent', href: '/workers' },
+      { icon: '⏱️', value: '0', labelKey: 'dashboard.stats.hoursThisWeek', change: '', theme: 'success', href: '/timesheets' },
+      { icon: '💰', value: '0 RON', labelKey: 'dashboard.stats.monthlyRevenue', change: '', theme: 'primary', href: '/invoices' },
     ];
   }, [sites, workers]);
 
@@ -150,7 +150,12 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="content-grid grid-cols-4" style={{ marginBottom: 'var(--sp-lg)' }}>
         {stats.map((stat) => (
-          <div key={stat.labelKey} className={`glass-card stat-card ${stat.theme}`}>
+          <Link
+            key={stat.labelKey}
+            href={stat.href}
+            className={`glass-card clickable stat-card ${stat.theme}`}
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
             <div className="stat-icon" aria-hidden="true">
               {stat.icon}
             </div>
@@ -159,7 +164,7 @@ export default function DashboardPage() {
             <div className="stat-change positive">
               <span>↑</span> {stat.change}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
