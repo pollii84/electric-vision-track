@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import ClientAutocomplete, { getContactDisplayName } from '@/components/ClientAutocomplete';
 import { onTenantCollectionSnapshot, addTenantDoc, updateTenantDoc } from '@/lib/firestore';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue'];
@@ -18,17 +22,25 @@ const STATUS_BADGES = {
 
 const INITIAL_FORM = {
   invoiceNumber: '',
-  siteName: '',
+  siteId: '',
   workStage: '',
   amount: '',
   dueDate: '',
+  clientId: '',
+  clientName: '',
+  clientEmail: '',
+  clientAddress: '',
 };
 
 export default function InvoicesPage() {
   const { t } = useI18n();
+  const router = useRouter();
   const { tenantId } = useAuth();
+  const { addToast } = useToast();
 
   const [invoices, setInvoices] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -41,7 +53,7 @@ export default function InvoicesPage() {
   // Form States
   const [addForm, setAddForm] = useState(INITIAL_FORM);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState('2026-06-01');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -50,7 +62,9 @@ export default function InvoicesPage() {
       setInvoices(data || []);
       setLoading(false);
     });
-    return () => unsub();
+    const unsubSites = onTenantCollectionSnapshot(tenantId, 'sites', setSites);
+    const unsubContacts = onTenantCollectionSnapshot(tenantId, 'contacts', setContacts);
+    return () => { unsub(); unsubSites(); unsubContacts(); };
   }, [tenantId]);
 
   const filteredInvoices = useMemo(() => {
@@ -66,7 +80,8 @@ export default function InvoicesPage() {
         (inv) =>
           (inv.invoiceNumber || '').toLowerCase().includes(query) ||
           (inv.siteName || '').toLowerCase().includes(query) ||
-          (inv.workStage || '').toLowerCase().includes(query)
+          (inv.workStage || '').toLowerCase().includes(query) ||
+          (inv.clientName || '').toLowerCase().includes(query)
       );
     }
 
@@ -75,8 +90,9 @@ export default function InvoicesPage() {
 
   // Arrears Delay Calculator
   const calculateDaysOverdue = (dueDateStr) => {
+    if (!dueDateStr) return 0;
     const due = new Date(dueDateStr);
-    const today = new Date('2026-06-01'); // Mock today's date based on specifications
+    const today = new Date();
     const diffTime = today - due;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
@@ -86,22 +102,86 @@ export default function InvoicesPage() {
     setAddForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSelectClient = (contact) => {
+    setAddForm((prev) => ({
+      ...prev,
+      clientId: contact.id,
+      clientName: getContactDisplayName(contact),
+      clientEmail: contact.email || '',
+      clientAddress: contact.address || '',
+    }));
+  };
+
+  const handleCreateClient = async (name) => {
+    if (!name || !tenantId) return;
+    try {
+      const id = await addTenantDoc(tenantId, 'contacts', {
+        type: 'client',
+        company: name,
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        address: '',
+      });
+      setAddForm((prev) => ({ ...prev, clientId: id, clientName: name, clientEmail: '', clientAddress: '' }));
+      addToast(t('invoices.clientSearch.created'), 'success');
+    } catch (err) {
+      console.error('Failed to create client contact:', err);
+    }
+  };
+
+  const nextInvoiceNumber = () => `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(4, '0')}`;
+
   const handleCreateInvoice = async () => {
     if (!addForm.invoiceNumber.trim() || !tenantId) return;
+    const site = sites.find((s) => s.id === addForm.siteId);
     const newInvoice = {
       invoiceNumber: addForm.invoiceNumber,
-      siteName: addForm.siteName,
+      siteId: addForm.siteId || null,
+      siteName: site?.name || '',
       workStage: addForm.workStage,
       amount: Number(addForm.amount) || 0,
       paidAmount: 0,
       dueDate: addForm.dueDate,
       status: 'draft',
+      clientId: addForm.clientId || null,
+      clientName: addForm.clientName || '',
+      clientEmail: addForm.clientEmail || '',
+      clientAddress: addForm.clientAddress || '',
+      lineItems: [],
     };
     try {
-      await addTenantDoc(tenantId, 'invoices', newInvoice);
+      const id = await addTenantDoc(tenantId, 'invoices', newInvoice);
       setShowAddModal(false);
       setAddForm(INITIAL_FORM);
+      router.push(`/invoices/${id}`);
     } catch (err) { console.error('Failed to create invoice:', err); }
+  };
+
+  const handleUseAsTemplate = async (invoice) => {
+    if (!tenantId) return;
+    try {
+      const id = await addTenantDoc(tenantId, 'invoices', {
+        invoiceNumber: nextInvoiceNumber(),
+        siteId: invoice.siteId || null,
+        siteName: invoice.siteName || '',
+        workStage: invoice.workStage || '',
+        amount: invoice.amount || 0,
+        paidAmount: 0,
+        dueDate: '',
+        status: 'draft',
+        clientId: invoice.clientId || null,
+        clientName: invoice.clientName || '',
+        clientEmail: invoice.clientEmail || '',
+        clientAddress: invoice.clientAddress || '',
+        lineItems: invoice.lineItems || [],
+      });
+      addToast(t('invoices.templateCreated'), 'success');
+      router.push(`/invoices/${id}`);
+    } catch (err) {
+      console.error('Failed to clone invoice:', err);
+    }
   };
 
   const handleOpenPayment = (invoice) => {
@@ -172,7 +252,7 @@ export default function InvoicesPage() {
             onClick={() => {
               setAddForm({
                 ...INITIAL_FORM,
-                invoiceNumber: `INV-2026-000${invoices.length + 1}`,
+                invoiceNumber: nextInvoiceNumber(),
               });
               setShowAddModal(true);
             }}
@@ -224,6 +304,7 @@ export default function InvoicesPage() {
                 <thead>
                   <tr>
                     <th>Invoice Code</th>
+                    <th>{t('invoices.fields.client')}</th>
                     <th>Work Site</th>
                     <th>Billing Stage</th>
                     <th>Due Date</th>
@@ -231,7 +312,7 @@ export default function InvoicesPage() {
                     <th>Paid Amount</th>
                     <th>Outstanding</th>
                     <th>Status</th>
-                    <th style={{ width: 180 }}>Actions</th>
+                    <th style={{ width: 220 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,7 +323,12 @@ export default function InvoicesPage() {
 
                     return (
                       <tr key={inv.id}>
-                        <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{inv.invoiceNumber}</td>
+                        <td className="font-semibold">
+                          <Link href={`/invoices/${inv.id}`} style={{ color: 'var(--clr-primary)', textDecoration: 'none' }}>
+                            {inv.invoiceNumber}
+                          </Link>
+                        </td>
+                        <td>{inv.clientName || '—'}</td>
                         <td className="font-semibold">🏗️ {inv.siteName}</td>
                         <td>{inv.workStage}</td>
                         <td>
@@ -283,6 +369,14 @@ export default function InvoicesPage() {
                             >
                               🖨️ Print
                             </button>
+                            <button
+                              className="btn btn-secondary btn-xs"
+                              onClick={() => handleUseAsTemplate(inv)}
+                              title={t('invoices.useAsTemplate')}
+                              style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)' }}
+                            >
+                              📋 {t('invoices.templateBtn')}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -303,11 +397,19 @@ export default function InvoicesPage() {
               return (
                 <div key={inv.id} className="mobile-card-item">
                   <div className="mobile-card-row" style={{ fontWeight: '600', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <div style={{ color: 'var(--clr-primary)' }}>{inv.invoiceNumber}</div>
+                    <Link href={`/invoices/${inv.id}`} style={{ color: 'var(--clr-primary)', textDecoration: 'none' }}>
+                      {inv.invoiceNumber}
+                    </Link>
                     <span className={`badge ${STATUS_BADGES[isOverdue ? 'overdue' : inv.status]}`}>
                       {t(`invoices.statuses.${isOverdue ? 'overdue' : inv.status}`)}
                     </span>
                   </div>
+                  {inv.clientName && (
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">{t('invoices.fields.client')}</span>
+                      <span className="mobile-card-value">{inv.clientName}</span>
+                    </div>
+                  )}
                   <div className="mobile-card-row">
                     <span className="mobile-card-label">Work Site</span>
                     <span className="mobile-card-value">🏗️ {inv.siteName}</span>
@@ -357,6 +459,12 @@ export default function InvoicesPage() {
                     >
                       🖨️ Print
                     </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleUseAsTemplate(inv)}
+                    >
+                      📋 {t('invoices.templateBtn')}
+                    </button>
                   </div>
                 </div>
               );
@@ -404,6 +512,21 @@ export default function InvoicesPage() {
                 />
               </div>
 
+              {/* Client typeahead */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="invoice-client">
+                  {t('invoices.fields.client')}
+                </label>
+                <ClientAutocomplete
+                  inputId="invoice-client"
+                  contacts={contacts}
+                  value={addForm.clientName}
+                  onChange={(text) => setAddForm((prev) => ({ ...prev, clientName: text, clientId: '' }))}
+                  onSelect={handleSelectClient}
+                  onCreateNew={handleCreateClient}
+                />
+              </div>
+
               {/* Site Selection */}
               <div className="form-group">
                 <label className="form-label" htmlFor="invoice-site">
@@ -412,12 +535,12 @@ export default function InvoicesPage() {
                 <select
                   id="invoice-site"
                   className="form-select"
-                  value={addForm.siteName}
-                  onChange={(e) => handleAddChange('siteName', e.target.value)}
+                  value={addForm.siteId}
+                  onChange={(e) => handleAddChange('siteId', e.target.value)}
                 >
                   <option value="">-- Select Site --</option>
-                  {[...new Set(invoices.map((inv) => inv.siteName))].filter(Boolean).map((name) => (
-                    <option key={name} value={name}>{name}</option>
+                  {sites.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
@@ -605,7 +728,8 @@ export default function InvoicesPage() {
             </div>
             <div>
               <h4 style={{ margin: '0 0 6px 0', borderBottom: '1px solid #ddd', paddingBottom: 4 }}>BILL TO / CLIENT:</h4>
-              <strong>SC Client SRL</strong><br />
+              <strong>{selectedInvoice.clientName || '—'}</strong><br />
+              {selectedInvoice.clientAddress && (<>{selectedInvoice.clientAddress}<br /></>)}
               Work Site: {selectedInvoice.siteName}<br />
               Stage: {selectedInvoice.workStage}
             </div>
