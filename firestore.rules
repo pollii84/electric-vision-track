@@ -176,14 +176,65 @@ service cloud.firestore {
 
       match /tasks/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
-        allow create: if isTenantMember(tenantId) || isSuperAdmin();
-        allow update: if isTenantMember(tenantId) || isSuperAdmin();
+
+        // New tasks must start at the default hours-approval state — closes the
+        // "create a task pre-approved" bypass. Does NOT validate workerId against
+        // the caller's own authUid: a conscious, documented tradeoff for a small
+        // trusted team, matching this app's existing rules posture elsewhere.
+        allow create: if isSuperAdmin() || (
+          isTenantMember(tenantId) &&
+          request.resource.data.get('hoursStatus', 'estimated') == 'estimated'
+        );
+
+        // hoursStatus drives an approval workflow layered on top of the existing
+        // free-form task fields (title/desc/kanban status/photos/changeOrders),
+        // which any member can still edit. Access to hoursStatus itself is more
+        // restricted:
+        //  - untouched by the write: always fine (covers ordinary field edits)
+        //  - member moves estimated <-> submitted: fine, but only pre-decision
+        //  - manager decides submitted -> approved/rejected: precondition on the
+        //    OLD value prevents a double-approve race (two managers / a double
+        //    click both succeeding and creating two timesheets)
+        //  - manager pulls an approved/rejected task back to submitted for
+        //    re-review (does not auto-clean any timesheet already created —
+        //    manual follow-up, same as any other manager-delete action here)
+        // .get(field, default) (not direct field access) is required throughout:
+        // every task predating this feature has no hoursStatus field at all, and
+        // direct access on a missing key errors, which — left unguarded — would
+        // silently strip plain members (not managers) of the ability to move a
+        // kanban card or add a photo on any pre-existing task.
+        allow update: if isSuperAdmin() || (
+          isTenantMember(tenantId) &&
+          (
+            request.resource.data.get('hoursStatus','estimated') == resource.data.get('hoursStatus','estimated') ||
+            (
+              resource.data.get('hoursStatus','estimated') != 'approved' &&
+              request.resource.data.get('hoursStatus','estimated') in ['estimated', 'submitted']
+            ) ||
+            (
+              isTenantManager(tenantId) &&
+              request.resource.data.hoursStatus in ['approved', 'rejected'] &&
+              resource.data.get('hoursStatus','estimated') == 'submitted'
+            ) ||
+            (
+              isTenantManager(tenantId) &&
+              resource.data.get('hoursStatus','estimated') in ['approved', 'rejected'] &&
+              request.resource.data.get('hoursStatus','estimated') == 'submitted'
+            )
+          )
+        );
+
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }
 
       match /timesheets/{docId} {
         allow read: if isTenantMember(tenantId) || isSuperAdmin();
-        allow create: if isTenantMember(tenantId) || isSuperAdmin();
+        // Manager-only create: closes the pre-existing gap where any plain worker
+        // could self-log arbitrary timesheet hours with zero oversight. A plain
+        // worker's only path to a timesheet is now the task approval pipeline
+        // (the approving manager's own write satisfies this rule); direct manager
+        // entry is unaffected.
+        allow create: if isTenantManager(tenantId) || isSuperAdmin();
         allow update: if isTenantManager(tenantId) || isSuperAdmin();
         allow delete: if isTenantManager(tenantId) || isSuperAdmin();
       }

@@ -102,7 +102,7 @@ export default function DashboardPage() {
       status: site.status || 'planned',
       badgeClass: site.status === 'in_progress' ? 'badge-warning' : (site.status === 'completed' ? 'badge-success' : 'badge-primary'),
       progress: site.progress || 0,
-      workers: (site.workers || []).length
+      workers: (site.workerIds || []).length
     }));
   }, [sites]);
 

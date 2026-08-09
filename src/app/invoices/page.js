@@ -30,6 +30,7 @@ const INITIAL_FORM = {
   clientName: '',
   clientEmail: '',
   clientAddress: '',
+  lineItems: [],
 };
 
 export default function InvoicesPage() {
@@ -47,6 +48,7 @@ export default function InvoicesPage() {
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
@@ -149,39 +151,35 @@ export default function InvoicesPage() {
       clientName: addForm.clientName || '',
       clientEmail: addForm.clientEmail || '',
       clientAddress: addForm.clientAddress || '',
-      lineItems: [],
+      lineItems: addForm.lineItems || [],
     };
     try {
       const id = await addTenantDoc(tenantId, 'invoices', newInvoice);
       setShowAddModal(false);
       setAddForm(INITIAL_FORM);
+      addToast(addForm.lineItems?.length ? t('invoices.templateCreated') : t('invoices.detail.saved'), 'success');
       router.push(`/invoices/${id}`);
     } catch (err) { console.error('Failed to create invoice:', err); }
   };
 
-  const handleUseAsTemplate = async (invoice) => {
-    if (!tenantId) return;
-    try {
-      const id = await addTenantDoc(tenantId, 'invoices', {
-        invoiceNumber: nextInvoiceNumber(),
-        siteId: invoice.siteId || null,
-        siteName: invoice.siteName || '',
-        workStage: invoice.workStage || '',
-        amount: invoice.amount || 0,
-        paidAmount: 0,
-        dueDate: '',
-        status: 'draft',
-        clientId: invoice.clientId || null,
-        clientName: invoice.clientName || '',
-        clientEmail: invoice.clientEmail || '',
-        clientAddress: invoice.clientAddress || '',
-        lineItems: invoice.lineItems || [],
-      });
-      addToast(t('invoices.templateCreated'), 'success');
-      router.push(`/invoices/${id}`);
-    } catch (err) {
-      console.error('Failed to clone invoice:', err);
-    }
+  // "Use a Template" picker: selecting a past invoice pre-fills the SAME
+  // create-invoice modal (not an instant silent clone) so the user reviews/
+  // adjusts number, due date, and amount before saving.
+  const handlePickTemplate = (invoice) => {
+    setAddForm({
+      invoiceNumber: nextInvoiceNumber(),
+      siteId: invoice.siteId || '',
+      workStage: invoice.workStage || '',
+      amount: invoice.amount || '',
+      dueDate: '',
+      clientId: invoice.clientId || '',
+      clientName: invoice.clientName || '',
+      clientEmail: invoice.clientEmail || '',
+      clientAddress: invoice.clientAddress || '',
+      lineItems: invoice.lineItems || [],
+    });
+    setShowTemplateModal(false);
+    setShowAddModal(true);
   };
 
   const handleOpenPayment = (invoice) => {
@@ -246,7 +244,13 @@ export default function InvoicesPage() {
       {/* Page Header */}
       <div className="page-header no-print">
         <h1>🧾 {t('invoices.title')}</h1>
-        <div className="page-header-actions">
+        <div className="page-header-actions" style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowTemplateModal(true)}
+          >
+            📋 {t('invoices.useTemplateHeaderBtn')}
+          </button>
           <button
             className="btn btn-primary"
             onClick={() => {
@@ -369,14 +373,6 @@ export default function InvoicesPage() {
                             >
                               🖨️ Print
                             </button>
-                            <button
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => handleUseAsTemplate(inv)}
-                              title={t('invoices.useAsTemplate')}
-                              style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)' }}
-                            >
-                              📋 {t('invoices.templateBtn')}
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -459,18 +455,81 @@ export default function InvoicesPage() {
                     >
                       🖨️ Print
                     </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleUseAsTemplate(inv)}
-                    >
-                      📋 {t('invoices.templateBtn')}
-                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
         </>
+      )}
+
+      {/* Use a Template Modal — pick a past invoice to pre-fill the Create Invoice form */}
+      {showTemplateModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowTemplateModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="template-picker-title"
+        >
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="template-picker-title">
+                📋 {t('invoices.useTemplateHeaderBtn')}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowTemplateModal(false)}
+                aria-label={t('common.buttons.close')}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {invoices.length === 0 ? (
+                <div className="text-muted text-sm" style={{ textAlign: 'center', padding: 'var(--sp-xl) 0' }}>
+                  {t('invoices.noTemplatesAvailable')}
+                </div>
+              ) : (
+                <div className="data-table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t('invoices.fields.invoiceNumber')}</th>
+                        <th>{t('invoices.fields.client')}</th>
+                        <th>Work Site</th>
+                        <th>Invoice Value</th>
+                        <th style={{ width: 100 }}>{t('common.actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="font-semibold">{inv.invoiceNumber}</td>
+                          <td>{inv.clientName || '—'}</td>
+                          <td>🏗️ {inv.siteName}</td>
+                          <td>{formatCurrency(inv.amount)} RON</td>
+                          <td>
+                            <button className="btn btn-primary btn-xs" onClick={() => handlePickTemplate(inv)}>
+                              {t('invoices.useTemplateBtn')}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowTemplateModal(false)}>
+                {t('common.buttons.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Add Invoice Modal */}

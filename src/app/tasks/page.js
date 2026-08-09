@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { doc, collection, writeBatch } from 'firebase/firestore';
 import Layout from '@/components/Layout';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { onTenantCollectionSnapshot, addTenantDoc, updateTenantDoc } from '@/lib/firestore';
+import { useTenantRole } from '@/hooks/useTenantRole';
+import {
+  onTenantCollectionSnapshot,
+  addTenantDoc,
+  updateTenantDoc,
+  serverTimestamp,
+  db,
+} from '@/lib/firestore';
+import { splitHoursByRule, getExistingWeekdayHoursForDate, getTenantManagerUids } from '@/lib/taskHours';
+import { createNotification } from '@/lib/notifications';
 
 const COLUMNS = ['todo', 'in_progress', 'quality_review', 'completed'];
 
@@ -23,10 +33,18 @@ const PRIORITY_BADGES = {
   high: 'badge-danger',
 };
 
+const HOURS_STATUS_BADGES = {
+  estimated: 'badge-neutral',
+  submitted: 'badge-warning',
+  approved: 'badge-success',
+  rejected: 'badge-danger',
+};
+
 export default function TasksPage() {
   const { t } = useI18n();
   const { addToast } = useToast();
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
+  const { isManager } = useTenantRole();
 
   const [tasks, setTasks] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -34,7 +52,19 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null); // Clicked task for details modal
-  
+  const [activeView, setActiveView] = useState('board'); // 'board' | 'approvals'
+
+  // Log actual hours modal
+  const [logHoursTask, setLogHoursTask] = useState(null);
+  const [actualHoursInput, setActualHoursInput] = useState('');
+  const [workDateInput, setWorkDateInput] = useState(() => new Date().toISOString().split('T')[0]);
+  const [submittingHours, setSubmittingHours] = useState(false);
+
+  // Approve/reject
+  const [rejectTask, setRejectTask] = useState(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [decidingTaskId, setDecidingTaskId] = useState(null);
+
   // Camera simulation
   const [showCameraSim, setShowCameraSim] = useState(false);
   const [simulatedPhotoUrl, setSimulatedPhotoUrl] = useState('');
@@ -50,10 +80,11 @@ export default function TasksPage() {
   const [formData, setFormData] = useState({
     title: '',
     desc: '',
-    siteIndex: '0',
-    workerIndex: '0',
+    siteId: '',
+    workerId: '',
     priority: 'medium',
-    dueDate: '2026-06-05',
+    dueDate: new Date().toISOString().split('T')[0],
+    estimatedHours: '',
   });
 
   useEffect(() => {
@@ -72,6 +103,34 @@ export default function TasksPage() {
     return () => { unsubTasks(); unsubWorkers(); unsubSites(); };
   }, [tenantId]);
 
+  // The current logged-in user's own worker record, if any (resolved via the
+  // authUid link set once a worker accepts their invite). Only workers with a
+  // linked record can self-create tasks / log hours through this flow.
+  const currentWorker = useMemo(
+    () => workers.find((w) => w.authUid === user?.uid) || null,
+    [workers, user?.uid]
+  );
+
+  // A worker (non-manager) may only create tasks on sites they're assigned to.
+  // Managers/owners see every site.
+  const assignableSites = useMemo(() => {
+    if (isManager) return sites;
+    if (!currentWorker) return [];
+    return sites.filter((s) => (s.workerIds || []).includes(currentWorker.id));
+  }, [sites, isManager, currentWorker]);
+
+  const selectedFormSite = useMemo(
+    () => sites.find((s) => s.id === formData.siteId) || null,
+    [sites, formData.siteId]
+  );
+
+  // Manager creating for someone else: worker dropdown limited to whoever is
+  // actually assigned to the chosen site.
+  const assignableWorkersForSite = useMemo(() => {
+    if (!selectedFormSite) return [];
+    return workers.filter((w) => (selectedFormSite.workerIds || []).includes(w.id));
+  }, [workers, selectedFormSite]);
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -84,8 +143,11 @@ export default function TasksPage() {
   const handleCreateTask = async () => {
     if (!formData.title.trim() || !tenantId) return;
 
-    const selectedSite = sites[Number(formData.siteIndex)];
-    const selectedWorker = workers[Number(formData.workerIndex)];
+    const selectedSite = sites.find((s) => s.id === formData.siteId);
+    // Workers self-create for themselves only; managers pick from the site's roster.
+    const selectedWorker = isManager
+      ? workers.find((w) => w.id === formData.workerId)
+      : currentWorker;
     if (!selectedSite || !selectedWorker) return;
 
     const newTask = {
@@ -94,7 +156,7 @@ export default function TasksPage() {
       siteId: selectedSite.id,
       siteName: selectedSite.name,
       workerId: selectedWorker.id,
-      workerName: selectedWorker.name || `${selectedWorker.firstName || ''} ${selectedWorker.lastName || ''}`.trim(),
+      workerName: `${selectedWorker.firstName || ''} ${selectedWorker.lastName || ''}`.trim(),
       priority: formData.priority,
       dueDate: formData.dueDate,
       status: 'todo',
@@ -102,6 +164,15 @@ export default function TasksPage() {
       drawingName: selectedSite.drawingName || null,
       photos: [],
       changeOrders: [],
+      estimatedHours: Number(formData.estimatedHours) || 0,
+      actualHours: null,
+      workDate: null,
+      hoursStatus: 'estimated',
+      hoursSubmittedAt: null,
+      hoursDecidedAt: null,
+      hoursDecidedBy: null,
+      rejectionNote: null,
+      timesheetId: null,
     };
 
     try {
@@ -110,10 +181,11 @@ export default function TasksPage() {
       setFormData({
         title: '',
         desc: '',
-        siteIndex: '0',
-        workerIndex: '0',
+        siteId: '',
+        workerId: '',
         priority: 'medium',
-        dueDate: '2026-06-05',
+        dueDate: new Date().toISOString().split('T')[0],
+        estimatedHours: '',
       });
       addToast('Task created successfully!', 'success');
     } catch (err) {
@@ -138,6 +210,154 @@ export default function TasksPage() {
       await updateTenantDoc(tenantId, 'tasks', id, { status: newStatus });
     } catch (err) {
       console.error('Failed to move task:', err);
+    }
+  };
+
+  const openLogHours = (task, e) => {
+    e?.stopPropagation();
+    setLogHoursTask(task);
+    setActualHoursInput(String(task.actualHours ?? task.estimatedHours ?? ''));
+    setWorkDateInput(task.workDate || new Date().toISOString().split('T')[0]);
+  };
+
+  const handleSubmitHours = async () => {
+    if (!logHoursTask || !tenantId || !actualHoursInput || Number(actualHoursInput) <= 0) return;
+    setSubmittingHours(true);
+    try {
+      await updateTenantDoc(tenantId, 'tasks', logHoursTask.id, {
+        actualHours: Number(actualHoursInput),
+        workDate: workDateInput,
+        hoursStatus: 'submitted',
+        hoursSubmittedAt: serverTimestamp(),
+        rejectionNote: null,
+      });
+
+      const managerUids = await getTenantManagerUids(tenantId);
+      await Promise.all(
+        managerUids
+          .filter((uid) => uid !== user?.uid)
+          .map((uid) =>
+            createNotification(tenantId, {
+              recipientUid: uid,
+              type: 'hours_submitted',
+              title: t('tasksAdditions.notifSubmittedTitle'),
+              body: t('tasksAdditions.notifSubmittedBody')
+                .replace('{worker}', logHoursTask.workerName)
+                .replace('{hours}', actualHoursInput)
+                .replace('{task}', logHoursTask.title),
+              link: '/tasks',
+            })
+          )
+      );
+
+      addToast(t('tasksAdditions.hoursSubmitted'), 'success');
+      setLogHoursTask(null);
+    } catch (err) {
+      console.error('Failed to submit hours:', err);
+      addToast(t('tasksAdditions.hoursSubmitFailed'), 'error');
+    } finally {
+      setSubmittingHours(false);
+    }
+  };
+
+  const handleApproveHours = async (task) => {
+    if (!tenantId || decidingTaskId) return;
+    setDecidingTaskId(task.id);
+    try {
+      const existingHours = await getExistingWeekdayHoursForDate(tenantId, task.workerId, task.workDate);
+      const split = splitHoursByRule(task.workDate, task.actualHours, existingHours);
+
+      // Cross-collection atomic write (tasks + timesheets) — batchWriteTenantDocs
+      // only targets one collection at a time, so this needs a raw writeBatch.
+      // Both writes land together or not at all; the firestore.rules precondition
+      // (old hoursStatus must be 'submitted') is the actual double-approve guard,
+      // this just prevents a partial task-approved/no-timesheet or
+      // timesheet-created/task-not-updated inconsistency from a mid-write failure.
+      const batch = writeBatch(db);
+      const timesheetRef = doc(collection(db, 'tenants', tenantId, 'timesheets'));
+      batch.set(timesheetRef, {
+        workerId: task.workerId,
+        siteId: task.siteId,
+        date: task.workDate,
+        standardHours: split.standardHours,
+        overtimeHours: split.overtimeHours,
+        weekendHours: split.weekendHours,
+        description: task.title,
+        sourceTaskId: task.id,
+        autoGenerated: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      const taskRef = doc(db, 'tenants', tenantId, 'tasks', task.id);
+      batch.update(taskRef, {
+        hoursStatus: 'approved',
+        hoursDecidedAt: serverTimestamp(),
+        hoursDecidedBy: user?.uid || null,
+        timesheetId: timesheetRef.id,
+        updatedAt: serverTimestamp(),
+      });
+
+      await batch.commit();
+
+      if (task.workerId && workers.find((w) => w.id === task.workerId)?.authUid) {
+        await createNotification(tenantId, {
+          recipientUid: workers.find((w) => w.id === task.workerId).authUid,
+          type: 'hours_approved',
+          title: t('tasksAdditions.notifApprovedTitle'),
+          body: t('tasksAdditions.notifApprovedBody')
+            .replace('{hours}', String(task.actualHours))
+            .replace('{task}', task.title),
+          link: '/timesheets',
+        });
+      }
+
+      addToast(t('tasksAdditions.hoursApproved'), 'success');
+    } catch (err) {
+      console.error('Failed to approve hours:', err);
+      addToast(t('tasksAdditions.approveFailed'), 'error');
+    } finally {
+      setDecidingTaskId(null);
+    }
+  };
+
+  const openReject = (task, e) => {
+    e?.stopPropagation();
+    setRejectTask(task);
+    setRejectNote('');
+  };
+
+  const handleRejectHours = async () => {
+    if (!rejectTask || !tenantId || decidingTaskId) return;
+    setDecidingTaskId(rejectTask.id);
+    try {
+      await updateTenantDoc(tenantId, 'tasks', rejectTask.id, {
+        hoursStatus: 'rejected',
+        hoursDecidedAt: serverTimestamp(),
+        hoursDecidedBy: user?.uid || null,
+        rejectionNote: rejectNote.trim() || null,
+      });
+
+      const worker = workers.find((w) => w.id === rejectTask.workerId);
+      if (worker?.authUid) {
+        await createNotification(tenantId, {
+          recipientUid: worker.authUid,
+          type: 'hours_rejected',
+          title: t('tasksAdditions.notifRejectedTitle'),
+          body: rejectNote.trim()
+            ? t('tasksAdditions.notifRejectedBodyWithNote').replace('{task}', rejectTask.title).replace('{note}', rejectNote.trim())
+            : t('tasksAdditions.notifRejectedBody').replace('{task}', rejectTask.title),
+          link: '/tasks',
+        });
+      }
+
+      addToast(t('tasksAdditions.hoursRejected'), 'success');
+      setRejectTask(null);
+    } catch (err) {
+      console.error('Failed to reject hours:', err);
+      addToast(t('tasksAdditions.rejectFailed'), 'error');
+    } finally {
+      setDecidingTaskId(null);
     }
   };
 
@@ -243,6 +463,8 @@ export default function TasksPage() {
     );
   }
 
+  const pendingApprovalTasks = tasks.filter((task) => (task.hoursStatus || 'estimated') === 'submitted');
+
   return (
     <Layout>
       {/* Page Header */}
@@ -255,9 +477,94 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* View tabs — Board / Pending Approval (managers only) */}
+      {isManager && (
+        <div className="tabs" role="tablist" style={{ marginBottom: 'var(--sp-md)' }}>
+          <button
+            className={`tab ${activeView === 'board' ? 'active' : ''}`}
+            onClick={() => setActiveView('board')}
+            role="tab"
+            aria-selected={activeView === 'board'}
+          >
+            {t('tasksAdditions.boardView')}
+          </button>
+          <button
+            className={`tab ${activeView === 'approvals' ? 'active' : ''}`}
+            onClick={() => setActiveView('approvals')}
+            role="tab"
+            aria-selected={activeView === 'approvals'}
+          >
+            {t('tasksAdditions.approvalsView')}
+            {pendingApprovalTasks.length > 0 && (
+              <span className="badge badge-danger" style={{ marginLeft: 6, fontSize: '10px', padding: '1px 6px' }}>
+                {pendingApprovalTasks.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Pending Approval view */}
+      {isManager && activeView === 'approvals' && (
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+          {pendingApprovalTasks.length === 0 ? (
+            <div className="text-muted text-sm" style={{ padding: 'var(--sp-xl) 0', textAlign: 'center' }}>
+              {t('tasksAdditions.noApprovals')}
+            </div>
+          ) : (
+            <div className="data-table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('tasks.fields.taskName')}</th>
+                    <th>{t('tasks.fields.assignedTo')}</th>
+                    <th>{t('tasks.fields.site')}</th>
+                    <th>{t('tasksAdditions.workDate')}</th>
+                    <th>{t('tasksAdditions.estimated')}</th>
+                    <th>{t('tasksAdditions.actual')}</th>
+                    <th style={{ width: 200 }}>{t('common.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingApprovalTasks.map((task) => (
+                    <tr key={task.id}>
+                      <td className="font-semibold">{task.title}</td>
+                      <td>{task.workerName}</td>
+                      <td>{task.siteName}</td>
+                      <td>{task.workDate}</td>
+                      <td className="text-muted">{task.estimatedHours}h</td>
+                      <td className="font-semibold" style={{ color: 'var(--clr-primary)' }}>{task.actualHours}h</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn btn-primary btn-xs"
+                            onClick={() => handleApproveHours(task)}
+                            disabled={decidingTaskId === task.id}
+                          >
+                            ✓ {t('tasksAdditions.approve')}
+                          </button>
+                          <button
+                            className="btn btn-danger btn-xs"
+                            onClick={(e) => openReject(task, e)}
+                            disabled={decidingTaskId === task.id}
+                          >
+                            ✕ {t('tasksAdditions.reject')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Kanban Board Columns Row */}
+      {(!isManager || activeView === 'board') && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--sp-md)', alignItems: 'flex-start' }} className="kanban-grid">
-        
+
         {COLUMNS.map((col) => {
           const colTasks = tasks.filter((t) => t.status === col);
           return (
@@ -343,8 +650,33 @@ export default function TasksPage() {
                       <span className="text-muted text-xs">📅 {task.dueDate}</span>
                     </div>
 
+                    {/* Hours estimate/approval status */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="text-muted text-xs">
+                        ⏱️ {t('tasksAdditions.estimated')}: {task.estimatedHours || 0}h
+                        {task.actualHours != null && ` · ${t('tasksAdditions.actual')}: ${task.actualHours}h`}
+                      </span>
+                      <span className={`badge ${HOURS_STATUS_BADGES[task.hoursStatus || 'estimated']}`} style={{ fontSize: '9px', padding: '1px 5px' }}>
+                        {t(`tasksAdditions.hoursStatuses.${task.hoursStatus || 'estimated'}`)}
+                      </span>
+                    </div>
+                    {task.hoursStatus === 'rejected' && task.rejectionNote && (
+                      <div className="text-xs" style={{ color: 'var(--clr-danger)' }}>
+                        ⚠️ {task.rejectionNote}
+                      </div>
+                    )}
+
                     {/* Shift Columns Actions */}
-                    <div style={{ display: 'flex', gap: 4, marginTop: 4, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      {task.workerId === currentWorker?.id && ['estimated', 'rejected'].includes(task.hoursStatus || 'estimated') && (
+                        <button
+                          className="btn btn-primary btn-xs"
+                          onClick={(e) => openLogHours(task, e)}
+                          style={{ padding: '2px 6px', fontSize: '9px' }}
+                        >
+                          ⏱️ {t('tasksAdditions.logHours')}
+                        </button>
+                      )}
                       {col !== 'todo' && (
                         <button
                           className="btn btn-secondary btn-xs"
@@ -382,6 +714,7 @@ export default function TasksPage() {
         })}
 
       </div>
+      )}
 
       {/* Reusable Create Task Modal */}
       {showCreateModal && (
@@ -423,30 +756,44 @@ export default function TasksPage() {
                 <select
                   id="site-select"
                   className="form-select"
-                  value={formData.siteIndex}
-                  onChange={(e) => handleFormChange('siteIndex', e.target.value)}
+                  value={formData.siteId}
+                  onChange={(e) => handleFormChange('siteId', e.target.value)}
                 >
-                  {sites.length === 0 && <option value="" disabled>No sites available</option>}
-                  {sites.map((site, index) => (
-                    <option key={site.id} value={index}>{site.name}</option>
+                  <option value="">-- {t('tasksAdditions.selectSite')} --</option>
+                  {assignableSites.length === 0 && <option value="" disabled>{t('tasksAdditions.noAssignableSites')}</option>}
+                  {assignableSites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="worker-select">{t('tasks.fields.assignedTo')}</label>
-                <select
-                  id="worker-select"
-                  className="form-select"
-                  value={formData.workerIndex}
-                  onChange={(e) => handleFormChange('workerIndex', e.target.value)}
-                >
-                  {workers.length === 0 && <option value="" disabled>No workers available</option>}
-                  {workers.map((worker, index) => (
-                    <option key={worker.id} value={index}>{worker.name || `${worker.firstName || ''} ${worker.lastName || ''}`.trim()}</option>
-                  ))}
-                </select>
-              </div>
+              {isManager ? (
+                <div className="form-group">
+                  <label className="form-label" htmlFor="worker-select">{t('tasks.fields.assignedTo')}</label>
+                  <select
+                    id="worker-select"
+                    className="form-select"
+                    value={formData.workerId}
+                    onChange={(e) => handleFormChange('workerId', e.target.value)}
+                    disabled={!formData.siteId}
+                  >
+                    <option value="">-- {t('tasksAdditions.selectWorker')} --</option>
+                    {assignableWorkersForSite.length === 0 && (
+                      <option value="" disabled>{t('tasksAdditions.noWorkersOnSite')}</option>
+                    )}
+                    {assignableWorkersForSite.map((worker) => (
+                      <option key={worker.id} value={worker.id}>{worker.firstName} {worker.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">{t('tasks.fields.assignedTo')}</label>
+                  <div className="form-input" style={{ background: 'var(--clr-bg-elevated)', display: 'flex', alignItems: 'center' }}>
+                    {currentWorker ? `${currentWorker.firstName} ${currentWorker.lastName}` : t('tasksAdditions.noOwnWorkerRecord')}
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label" htmlFor="priority-select">{t('tasks.fields.priority')}</label>
@@ -462,21 +809,49 @@ export default function TasksPage() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="due-date">{t('tasks.fields.dueDate')}</label>
-                <input
-                  id="due-date"
-                  className="form-input"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => handleFormChange('dueDate', e.target.value)}
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="due-date">{t('tasks.fields.dueDate')}</label>
+                  <input
+                    id="due-date"
+                    className="form-input"
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="task-estimated-hours">
+                    {t('tasksAdditions.estimatedHours')} {!isManager && '*'}
+                  </label>
+                  <input
+                    id="task-estimated-hours"
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={formData.estimatedHours}
+                    onChange={(e) => handleFormChange('estimatedHours', e.target.value)}
+                    placeholder="e.g. 4"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>{t('common.buttons.cancel')}</button>
-              <button className="btn btn-primary" onClick={handleCreateTask} disabled={!formData.title.trim()}>{t('common.buttons.save')}</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleCreateTask}
+                disabled={
+                  !formData.title.trim() ||
+                  !formData.siteId ||
+                  (isManager ? !formData.workerId : !currentWorker) ||
+                  (!isManager && !formData.estimatedHours)
+                }
+              >
+                {t('common.buttons.save')}
+              </button>
             </div>
           </div>
         </div>
@@ -678,6 +1053,98 @@ export default function TasksPage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Log Actual Hours Modal */}
+      {logHoursTask && (
+        <div className="modal-backdrop" onClick={() => setLogHoursTask(null)} role="dialog" aria-modal="true" aria-labelledby="log-hours-title">
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="log-hours-title">⏱️ {t('tasksAdditions.logHours')}: {logHoursTask.title}</h3>
+              <button className="modal-close" onClick={() => setLogHoursTask(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+              <div className="text-muted text-sm">
+                {t('tasksAdditions.estimated')}: {logHoursTask.estimatedHours || 0}h
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="actual-hours">{t('tasksAdditions.actualHours')} *</label>
+                <input
+                  id="actual-hours"
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={actualHoursInput}
+                  onChange={(e) => setActualHoursInput(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="work-date">{t('tasksAdditions.workDate')} *</label>
+                <input
+                  id="work-date"
+                  className="form-input"
+                  type="date"
+                  value={workDateInput}
+                  onChange={(e) => setWorkDateInput(e.target.value)}
+                  required
+                />
+              </div>
+              <p className="text-muted text-xs" style={{ margin: 0 }}>
+                {t('tasksAdditions.logHoursHint')}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setLogHoursTask(null)}>{t('common.buttons.cancel')}</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSubmitHours}
+                disabled={submittingHours || !actualHoursInput || Number(actualHoursInput) <= 0 || !workDateInput}
+              >
+                {submittingHours ? t('common.loading') : t('tasksAdditions.submitForApproval')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Hours Modal */}
+      {rejectTask && (
+        <div className="modal-backdrop" onClick={() => setRejectTask(null)} role="dialog" aria-modal="true" aria-labelledby="reject-hours-title">
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" id="reject-hours-title">✕ {t('tasksAdditions.reject')}: {rejectTask.title}</h3>
+              <button className="modal-close" onClick={() => setRejectTask(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+              <div className="text-muted text-sm">
+                {rejectTask.workerName} — {t('tasksAdditions.actual')}: {rejectTask.actualHours}h
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="reject-note">{t('tasksAdditions.rejectionNote')}</label>
+                <textarea
+                  id="reject-note"
+                  className="form-input"
+                  rows="3"
+                  value={rejectNote}
+                  onChange={(e) => setRejectNote(e.target.value)}
+                  placeholder={t('tasksAdditions.rejectionNotePlaceholder')}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setRejectTask(null)}>{t('common.buttons.cancel')}</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleRejectHours}
+                disabled={decidingTaskId === rejectTask.id}
+              >
+                {t('tasksAdditions.confirmReject')}
+              </button>
             </div>
           </div>
         </div>

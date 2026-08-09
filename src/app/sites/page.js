@@ -44,6 +44,7 @@ export default function SitesPage() {
   const { tenantId } = useAuth();
 
   const [sites, setSites] = useState([]);
+  const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -57,8 +58,14 @@ export default function SitesPage() {
       setSites(data || []);
       setLoading(false);
     });
-    return () => unsubscribe();
+    const unsubWorkers = onTenantCollectionSnapshot(tenantId, 'workers', setWorkers);
+    return () => { unsubscribe(); unsubWorkers(); };
   }, [tenantId]);
+
+  const getWorkerName = (workerId) => {
+    const w = workers.find((x) => x.id === workerId);
+    return w ? `${w.firstName || ''} ${w.lastName || ''}`.trim() : '';
+  };
 
   const filteredSites = useMemo(() => {
     let result = sites || [];
@@ -101,7 +108,7 @@ export default function SitesPage() {
       ...formData,
       progress: 0,
       budget: Number(formData.budget) || 0,
-      workers: [],
+      workerIds: [],
     };
 
     try {
@@ -290,21 +297,21 @@ export default function SitesPage() {
               }}>
                 {/* Workers Avatar Group */}
                 <div className="avatar-group" style={{ display: 'flex', alignItems: 'center' }}>
-                  {(site.workers || []).slice(0, 4).map((workerName, i) => (
+                  {(site.workerIds || []).slice(0, 4).map((workerId, i) => (
                     <div
-                      key={workerName}
+                      key={workerId}
                       className="avatar avatar-sm"
                       style={{
                         background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
                         marginLeft: i > 0 ? -8 : 0,
                         border: '2px solid var(--clr-bg-surface)',
                       }}
-                      title={workerName}
+                      title={getWorkerName(workerId)}
                     >
-                      {getInitials(workerName)}
+                      {getInitials(getWorkerName(workerId))}
                     </div>
                   ))}
-                  {(site.workers || []).length > 4 && (
+                  {(site.workerIds || []).length > 4 && (
                     <div
                       className="avatar avatar-sm font-semibold"
                       style={{
@@ -315,10 +322,10 @@ export default function SitesPage() {
                         fontSize: 'var(--fs-xs)',
                       }}
                     >
-                      +{(site.workers || []).length - 4}
+                      +{(site.workerIds || []).length - 4}
                     </div>
                   )}
-                  {(site.workers || []).length === 0 && (
+                  {(site.workerIds || []).length === 0 && (
                     <span className="text-muted text-xs">{t('sites.fields.assignedWorkers')}: 0</span>
                   )}
                 </div>

@@ -8,7 +8,8 @@ import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { onTenantDocSnapshot, updateTenantDoc, deleteTenantDoc, onGlobalCollectionSnapshot, db } from '@/lib/firestore';
 import { useToast } from '@/contexts/ToastContext';
-import { collection, addDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { useTenantRole } from '@/hooks/useTenantRole';
 
 const STATUS_BADGES = {
   planned: 'badge-primary',
@@ -34,6 +35,8 @@ export default function SiteDetailPage() {
   const { t } = useI18n();
   const { tenantId, user } = useAuth();
   const { addToast } = useToast();
+  const { isManager } = useTenantRole();
+  const [assignWorkerId, setAssignWorkerId] = useState('');
 
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -199,6 +202,29 @@ export default function SiteDetailPage() {
       } catch (err) {
         console.error('Failed to delete site:', err);
       }
+    }
+  };
+
+  const handleAssignWorker = async () => {
+    if (!assignWorkerId || !tenantId || !params.id) return;
+    try {
+      await updateTenantDoc(tenantId, 'sites', params.id, {
+        workerIds: arrayUnion(assignWorkerId),
+      });
+      setAssignWorkerId('');
+    } catch (err) {
+      console.error('Failed to assign worker:', err);
+    }
+  };
+
+  const handleUnassignWorker = async (workerId) => {
+    if (!tenantId || !params.id) return;
+    try {
+      await updateTenantDoc(tenantId, 'sites', params.id, {
+        workerIds: arrayRemove(workerId),
+      });
+    } catch (err) {
+      console.error('Failed to unassign worker:', err);
     }
   };
 
@@ -489,42 +515,79 @@ export default function SiteDetailPage() {
             <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
               <h3 style={{ margin: 0 }}>👷 {t('sites.fields.assignedWorkers')}</h3>
 
-              {(site.workers || []).length === 0 ? (
+              {isManager && (
+                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexWrap: 'wrap' }}>
+                  <select
+                    className="form-select"
+                    value={assignWorkerId}
+                    onChange={(e) => setAssignWorkerId(e.target.value)}
+                    style={{ flex: 1, minWidth: 180 }}
+                  >
+                    <option value="">{t('sites.assignWorkerPlaceholder')}</option>
+                    {tenantWorkers
+                      .filter((w) => !(site.workerIds || []).includes(w.id))
+                      .map((w) => (
+                        <option key={w.id} value={w.id}>{w.firstName} {w.lastName}</option>
+                      ))}
+                  </select>
+                  <button className="btn btn-secondary btn-sm" onClick={handleAssignWorker} disabled={!assignWorkerId}>
+                    + {t('sites.assignWorkerBtn')}
+                  </button>
+                </div>
+              )}
+
+              {(site.workerIds || []).length === 0 ? (
                 <div className="text-muted text-sm" style={{ padding: 'var(--sp-md) 0' }}>
-                  No workers assigned to this site yet.
+                  {t('sites.noWorkersAssigned')}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
-                  {(site.workers || []).map((workerName, i) => (
-                    <div
-                      key={workerName}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--sp-md)',
-                        padding: '10px 12px',
-                        background: 'var(--clr-bg-elevated)',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
+                  {(site.workerIds || []).map((workerId, i) => {
+                    const w = tenantWorkers.find((x) => x.id === workerId);
+                    const workerName = w ? `${w.firstName || ''} ${w.lastName || ''}`.trim() : t('sites.unknownWorker');
+                    return (
                       <div
-                        className="avatar avatar-md font-semibold"
+                        key={workerId}
                         style={{
-                          background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
-                          border: '1px solid var(--clr-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'var(--sp-md)',
+                          padding: '10px 12px',
+                          background: 'var(--clr-bg-elevated)',
+                          borderRadius: 'var(--radius-sm)',
                         }}
                       >
-                        {getInitials(workerName)}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="font-semibold">{workerName}</div>
-                        <div className="text-muted text-xs">
-                          {i === 0 ? 'Site Leader' : 'Electrician'}
+                        <div
+                          className="avatar avatar-md font-semibold"
+                          style={{
+                            background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
+                            border: '1px solid var(--clr-border)',
+                          }}
+                        >
+                          {getInitials(workerName)}
                         </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="font-semibold">{workerName}</div>
+                          {w && (
+                            <div className="text-muted text-xs">
+                              {t(`workers.experienceLevels.${w.experienceLevel}`)}
+                              {w.isTeamLeader ? ` · ⭐ ${t('workers.teamLeader')}` : ''}
+                            </div>
+                          )}
+                        </div>
+                        {isManager && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleUnassignWorker(workerId)}
+                            aria-label={t('sites.unassignWorker')}
+                            style={{ color: 'var(--clr-danger)', padding: 6 }}
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
-                      <div className="text-muted text-sm font-medium">40 hrs/wk</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
