@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
-import { getGlobalCollection, setGlobalDoc } from '@/lib/firestore';
+import { getGlobalCollection, setGlobalDoc, setTenantDoc } from '@/lib/firestore';
 import { useToast } from '@/contexts/ToastContext';
 
 export default function UserManagement() {
@@ -64,7 +64,19 @@ export default function UserManagement() {
         role: editRole,
         tenantId: editTenantId || null,
       }, true);
-      
+
+      // Keep the tenant-scoped membership doc in sync — this is the document
+      // firestore.rules (isTenantManager/isTenantOwner) and useTenantRole()
+      // actually check, separate from the global users/{uid}.role above.
+      // Without this write, a role edit here silently desyncs nav-visible
+      // access (global role) from what's actually enforced tenant-side.
+      if (editTenantId) {
+        await setTenantDoc(editTenantId, 'members', selectedUser.uid, {
+          uid: selectedUser.uid,
+          role: editRole,
+        }, true);
+      }
+
       addToast(`User "${selectedUser.displayName || selectedUser.email}" updated successfully.`, 'success');
       setShowModal(false);
       fetchData();

@@ -124,12 +124,13 @@ export default function TasksPage() {
     [sites, formData.siteId]
   );
 
-  // Manager creating for someone else: worker dropdown limited to whoever is
-  // actually assigned to the chosen site.
-  const assignableWorkersForSite = useMemo(() => {
-    if (!selectedFormSite) return [];
-    return workers.filter((w) => (selectedFormSite.workerIds || []).includes(w.id));
-  }, [workers, selectedFormSite]);
+  // Manager creating for someone else: any worker in the company can be
+  // assigned to any task on any site — a manager isn't limited to whoever
+  // happens to already be formally assigned to that specific site (that
+  // assignment list only gates a WORKER's own self-service task creation,
+  // above). This is unused for non-managers (they hit the currentWorker
+  // branch in the JSX instead).
+  const assignableWorkersForSite = workers;
 
   const getInitials = (name) => {
     if (!name) return '?';
