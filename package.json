@@ -17,6 +17,7 @@
     "date-fns": "^4.4.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^14.0.0",
+    "firecrawl": "^4.32.0",
     "html5-qrcode": "^2.3.8",
     "next": "16.2.6",
     "pdf-lib": "^1.17.1",
