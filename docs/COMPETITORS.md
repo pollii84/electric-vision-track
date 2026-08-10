@@ -1,77 +1,96 @@
-# Competitor Research — Cluj-Napoca / Transylvania electrical contractors
+# Competitor Research — ElectricVision Track (app.dimensionvisiontrack.com)
 
-First pass, generated via Firecrawl (search + structured extraction) against live competitor
-websites. Not exhaustive — a starting map, not a market survey. Re-run periodically; pricing in
-particular will drift.
+Corrected from a first draft that mistakenly researched local Cluj electrical *contractor
+businesses* — wrong subject. The actual product is a construction-management **SaaS platform**
+for electrical contractors; its competitors are other software products, not electricians.
 
-## ⚠ Needs your confirmation
+## iPlan.expert — build-vs-buy threat, not a packaged competitor
 
-**`iplan.expert`** (the one you named as a known competitor) scraped as **iPlan 360** — a digital
-ecosystem product (websites, digital marketing, AI automation/agents for business operations), not
-an electrical contractor. Nothing on the page describes electrical installation work. Possibilities:
-wrong URL, the company pivoted since you last checked, or it's a different business than intended.
-Worth double-checking the actual URL before treating it as a competitor.
+Named directly as the closest fit for managing electrical installation teams and worksites.
+Scraped their homepage and their `/software` page specifically to verify what it actually is:
 
-## Not a competitor — flagged during research, may still be useful elsewhere
+- **iPlan is a custom software development agency**, not an off-the-shelf SaaS product. Their own
+  pitch: *"Nu te obligăm să te mulezi pe un produs generic"* ("We don't force you into a generic
+  product") — they build bespoke apps, client portals, dashboards, and operational modules to a
+  business's exact workflow. Alongside "iPlan Software" they also sell website builds, digital
+  marketing, and AI automation/agents as separate service lines — construction is one of several
+  industries they mention serving, not their sole focus.
+- **No public feature list or pricing** exists for whatever electrical-team/worksite tooling they
+  may have built for a specific client — that's inherent to a custom-build model, not a gap in this
+  research. "Contact for pricing" is the only signal on the page.
+- **Why this still matters competitively**: iPlan isn't a rival product to compare feature-by-feature
+  against — it's a different purchase decision entirely. A contractor business deciding between
+  "subscribe to ElectricVision Track" and "pay an agency to build us something custom" is a real
+  fork in the buying process, just a slower and more expensive path to the same destination.
 
-**`clujconstruct.ro`** (listed under "CABLE") is a **materials distributor** — imports/distributes
-fiber-optic cable, coaxial cable, solar cable, and electrical equipment — not a competing
-installation/contracting business. More relevant as a potential supplier for the Stocks/Purchases
-side of the app than as competition.
+## Productized SaaS competitors (public features + pricing)
 
-## Real competitors found
+### Knowify — closest feature match found
+- **What it is**: Project/team/finance management built specifically for small-to-medium trade
+  contractors, electrical included.
+- **Features**: estimating & proposals, change orders, RFI/submittal tracking, scheduling, time
+  tracking, subcontractor management, inventory, client portal, invoicing & payments, budgeting,
+  job costing, reporting.
+- **Pricing**: starts at **$99/month**.
+- Nearly a direct mirror of ElectricVision Track's own quotes→contracts→invoices pipeline +
+  timesheets + inventory + subcontractor/collaboration model.
 
-### HomeRun — Cluj-Napoca
-- **What they do**: Electrical installations, maintenance packages, safety solutions, free
-  consultations.
-- **Pricing signal**: Electrical installation jobs quoted **150 – 13,000 Lei**, depending on scope
-  — a residential-to-larger-job range, no fixed rate card published.
-- Source: homerun.ro/cluj-napoca-instalatii-electrice
+### Fieldwire (by Hilti) — plan-viewer overlap
+- **What it is**: Field management/collaboration software for construction teams, with a
+  dedicated electrical-contractor landing page.
+- **Features**: task management, scheduling, punch lists, inspections, RFIs, submittals, change
+  orders, budget tracking, document management, **plan viewing, as-built drawings, BIM viewer**.
+- **Pricing**: tiered (Business, Business Plus, Pro) — exact numbers not surfaced on this page.
+- The plan-viewing/BIM angle is the one area where Fieldwire goes further than ElectricVision
+  Track's current Plan Viewer (which itself is still a UI scaffold with no live data, per
+  `docs/PRD.md`).
 
-### Xander Electric SRL — Cluj-Napoca
-- **What they do**: Design and execution of electrical installations — residential, industrial,
-  street lighting, smart-home installs, surveillance camera installs.
-- **Services**: full rewiring, repairs, new-build installation, panel/breaker board mounting,
-  outlet/switch/fixture/chandelier mounting.
-- **Pricing signal** (most detailed of the group):
-  - Full electrical install for house/villa/apartment: **2,500 – 6,300 Lei**
-  - Rewiring per outlet/fixture: **56 – 69 Lei/unit**
-- Source: necesit.ro/instalatii-electrice/cluj
+### Deltek ComputerEase — accounting-first angle
+- **What it is**: Electrical-contractor-specific software leaning heavily into back-office
+  operations.
+- **Features**: job cost accounting, billing/invoicing, estimating, project management, work
+  order management, time tracking, fleet management, CRM.
+- **Pricing**: not published.
+- Positions itself more as accounting/ERP-first than field-operations-first — a different angle
+  than ElectricVision Track's task/timesheet-approval-centric design.
 
-### Ianis Electroinstal S.R.L. — Luna de Sus, Cluj county (founded 2020)
-- **What they do**: Electrical installations, surveillance systems, repairs, modernization of
-  existing installations.
-- **Pricing signal**:
-  - Device/fixture mounting: **50 – 100 Lei/unit**
-  - Light fixture mounting: **45 – 70 Lei/unit**
-  - Electrical panel mounting: **900 – 1,000 Lei**
-- **Contact**: +40 31 229 8485
-- Source: daibau.ro nomenclator listing
+### BuildOps — field service dispatch angle
+- **What it is**: Field service management for commercial contractors across HVAC, electrical,
+  plumbing, fire safety, refrigeration.
+- **Features**: real-time dispatch board, AI-powered mobile app, customer/asset management, job
+  costing, time tracking, invoicing/payments, reporting.
+- **Pricing**: per-user/month, custom quote via demo.
+- Multi-trade rather than electrical-specific; dispatch-board framing suggests a reactive
+  service-call business model more than planned project/site work.
 
-### Electro Energetica Instal SRL — Cluj-Napoca
-- **What they do**: Electrical installation contractor (thin data — sourced from a business
-  registry listing page, not their own site; worth a direct site visit if one exists).
-- **Address**: Str. Vânătorului 23, Cluj-Napoca
-- Source: listafirme.ro business registry
+### Podium — adjacent, not a direct competitor
+- **What it is**: Lead response, customer communication, and review management, with some
+  scheduling/dispatch and invoicing bolted on.
+- Closer to a CRM/communications tool that happens to serve electrical contractors than a
+  project/worksite management platform. Listed for completeness, not a strong direct competitor.
 
-## Pricing comparison (where data exists)
+## Feature comparison
 
-| Company | Full install (house/apt) | Per-unit (outlet/fixture) | Panel mount |
-|---|---|---|---|
-| HomeRun | 150 – 13,000 Lei (wide range, scope-dependent) | — | — |
-| Xander Electric | 2,500 – 6,300 Lei | 56 – 69 Lei | — |
-| Ianis Electroinstal | — | 45 – 100 Lei | 900 – 1,000 Lei |
-
-Xander Electric published the most directly comparable full-job pricing; Ianis Electroinstal
-published the most granular per-unit pricing. Useful reference points for sanity-checking your own
-quotes on comparable scope.
+| Capability | ElectricVision Track | Knowify | Fieldwire | Deltek ComputerEase | BuildOps |
+|---|---|---|---|---|---|
+| Quotes → Contracts → Invoices | ✅ (live) | ✅ | — | ✅ (accounting-led) | ✅ (invoicing only) |
+| Task + timesheet approval workflow | ✅ (live, built this session) | ✅ (time tracking) | ✅ (task mgmt) | ✅ (time tracking) | ✅ (job costing/time) |
+| Site/plan viewer | Scaffold, no data yet | — | ✅ (BIM viewer, ahead) | — | — |
+| Inventory/materials | Partial (no create action) | ✅ | — | — | — |
+| Cross-tenant contractor collaboration | ✅ (live, built this session) | — | — | — | — |
+| Published starting price | Not public yet | $99/mo | Tiered, undisclosed | Not public | Per-user, custom |
 
 ## Method
 
-Firecrawl `search()` for `"instalatii electrice Cluj-Napoca firma"`, `"electrician autorizat Cluj
-Transilvania"`, `"firma electrica industriala Cluj"`, plus the given `iplan.expert` URL. Top
-results per query deduped into one candidate list, each scraped with a structured `json` extraction
-(company overview, services, service area, pricing signals, contact info) via
-`client.scrape(url, { formats: [{ type: 'json', schema: {...} }] })`. Six candidates researched;
-four confirmed as genuine electrical-contractor competitors, one flagged as a materials supplier
-(not a competitor), one flagged as a likely mismatch pending your confirmation.
+Firecrawl `search()` for `"software management electrical contractors worksites"`,
+`"construction management software field service electrical teams"`, `"field service management
+software Romania"`, `"workforce management app construction electrical installation"`, plus a
+direct scrape of `iplan.expert` (homepage and `/software` subpage specifically, at the user's
+correction). Structured `json` extraction per candidate (product name, description, core
+features, target customer, pricing signals) via `client.scrape(url, { formats: [{ type: 'json',
+schema: {...} }] })`. One Reddit thread returned unsupported-site and was dropped; one directory/
+comparison-site result (getapp.com) was excluded as not itself a product.
+
+**Correction note**: the first version of this document researched local Cluj-Napoca electrical
+*contracting* businesses (confusing the app's own demo/placeholder tenant persona with the actual
+subject) — wrong research entirely, replaced here.
